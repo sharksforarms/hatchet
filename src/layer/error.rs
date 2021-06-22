@@ -1,5 +1,9 @@
+/*!
+  Layer error
+*/
 use alloc::string::String;
 
+/// Error parsing or building a layer
 #[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub enum LayerError {

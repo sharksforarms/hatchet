@@ -1,11 +1,15 @@
+/*!
+  Packet error
+*/
 use crate::layer::LayerError;
 
+/// Error parsing or generating a packet
 #[derive(Debug, PartialEq)]
 #[non_exhaustive]
 pub enum PacketError {
     /// Recoverable error containing the amount of bytes required to continue parsing
     Incomplete(usize),
-    /// Error parsing a layer 
+    /// Error parsing a layer
     LayerError(LayerError),
 }
 

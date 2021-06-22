@@ -1,8 +1,5 @@
-/*! Packet
-
-  [PacketBuilder](self::PacketBuilder) is used to parse and construct a [Packet](self::Packet).
-
-  A [Packet](self::Packet) is simply a collection of [Layer](crate::layer::Layer)s.
+/*!
+  Packet parsing and construction
 */
 
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -14,27 +11,34 @@ use crate::layer::{LayerBuilder, LayerExt, LayerOwned, LayerRef};
 pub mod error;
 pub use error::PacketError;
 
+/// Read-only view of a packet
 pub struct PacketView<'a> {
     #[allow(dead_code)]
     layers: Vec<LayerRef<'a>>,
 }
 
 impl<'a> PacketView<'a> {
+    /// Create a PacketView from layers
     pub fn from_layers(layers: Vec<LayerRef<'a>>) -> Self {
         Self { layers }
     }
 }
 
+/// A packet is simply a collection of [Layer](crate::layer::LayerExt)
 #[derive(Debug)]
 pub struct Packet {
     layers: Vec<LayerOwned>,
 }
 
 impl Packet {
+    /// Construct a Packet given existing layers
     pub fn from_layers(layers: Vec<LayerOwned>) -> Self {
         Self { layers }
     }
 
+    /// Finalize a packet
+    ///
+    /// This will call finalize on each layer of the packet
     pub fn finalize(&mut self) -> Result<(), PacketError> {
         for i in 0..self.layers.len() {
             let (prev, rest) = self.layers.split_at_mut(i);
@@ -47,8 +51,14 @@ impl Packet {
         Ok(())
     }
 
+    /// Immutable access of the layers
     pub fn layers(&self) -> &[LayerOwned] {
         &self.layers
+    }
+
+    /// Mutable access of the layers
+    pub fn layers_mut(&mut self) -> &mut [LayerOwned] {
+        &mut self.layers
     }
 }
 
@@ -57,8 +67,8 @@ type LayerBinding = Box<dyn Fn(&dyn LayerExt) -> Option<Box<dyn LayerBuilder>>>;
 /**
 Parse a [Packet](self::Packet) given layer binding rules
 
-a layer binding specifies which [Layer](crate::layer::Layer) to read next,
-given the current parsed layer
+A layer binding specifies which [Layer](crate::layer::Layer) to read next,
+given the current parsed layer.
 */
 pub struct PacketBuilder {
     layer_bindings: HashMap<TypeId, Vec<LayerBinding>>,
@@ -161,13 +171,13 @@ impl PacketBuilder {
     # }
     ```
     */
-    pub fn bind_layer<From: LayerExt + 'static, F>(&mut self, cond: F)
+    pub fn bind_layer<From: LayerExt + 'static, F>(&mut self, f: F)
     where
         F: 'static + Fn(&dyn LayerExt) -> Option<Box<dyn LayerBuilder>>,
     {
         let tid = TypeId::of::<From>();
         let bindings = self.layer_bindings.entry(tid).or_insert_with(Vec::new);
-        (*bindings).push(Box::new(cond))
+        (*bindings).push(Box::new(f))
     }
 
     /// Parse a packet from bytes, returning the un-parsed data
@@ -184,7 +194,7 @@ impl PacketBuilder {
         // Given the currently parsed layer:
         //  - Lookup the layer bindings for the current layer
         //  - Find the next layer builder by executing the bindings
-        //      - bindings are ececuted in reverse sequence
+        //      - bindings are executed in reverse sequence
         //      - if a binding returns a builder, it returns with that builder.
         //        (this is to allow users to override some behaviour)
         //  - Parse the next layer with the builder

@@ -1,5 +1,7 @@
 /*!
-  TODO: Split out into seperate directories...
+  Temporary layer module, this will be removed
+
+  TODO: Split out into separate directories...
 */
 
 use alloc::boxed::Box;
@@ -10,7 +12,9 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+/// Ether
 pub struct Ether {}
+/// EtherBuilder
 pub struct EtherBuilder {}
 
 impl LayerBuilder for EtherBuilder {
@@ -36,8 +40,10 @@ impl LayerExt for Ether {
 }
 
 #[derive(Debug, Default)]
+/// Ipv4
 pub struct Ipv4 {}
 
+/// Ipv4Builder
 pub struct Ipv4Builder {}
 
 impl LayerBuilder for Ipv4Builder {
@@ -67,7 +73,9 @@ impl LayerExt for Ipv4 {
 }
 
 #[derive(Debug)]
+/// Tcp
 pub struct Tcp {
+    /// source port
     pub sport: u8,
 }
 
@@ -76,6 +84,7 @@ impl Default for Tcp {
         Tcp { sport: 80 }
     }
 }
+/// TcpBuilder
 pub struct TcpBuilder {}
 
 impl LayerBuilder for TcpBuilder {
