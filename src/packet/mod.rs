@@ -6,7 +6,10 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::any::TypeId;
 use hashbrown::HashMap;
 
-use crate::layer::{LayerBuilder, LayerExt, LayerOwned, LayerRef};
+use crate::{
+    get_layer,
+    layer::{LayerBuilder, LayerExt, LayerOwned, LayerRef},
+};
 
 pub mod error;
 pub use error::PacketError;
@@ -149,15 +152,11 @@ impl PacketBuilder {
     # fn main() {
         let mut packet_builder = PacketBuilder::without_bindings();
 
-        packet_builder.bind_layer::<Ether, _>(|current_layer| {
-            if let Some(ether) = get_layer!(current_layer, Ether) {
-                match ether.ether_type {
-                    EtherType::Ipv4 => Some(Box::new(Ipv4Builder {})),
-                    // ...
-                    _ => None
-                }
-            } else {
-                None
+        packet_builder.bind_layer::<Ether, _>(|ether: &Ether| {
+            match ether.ether_type {
+                EtherType::Ipv4 => Some(Box::new(Ipv4Builder {})),
+                // ...
+                _ => None
             }
         });
 
@@ -173,11 +172,16 @@ impl PacketBuilder {
     */
     pub fn bind_layer<From: LayerExt + 'static, F>(&mut self, f: F)
     where
-        F: 'static + Fn(&dyn LayerExt) -> Option<Box<dyn LayerBuilder>>,
+        F: 'static + Fn(&From) -> Option<Box<dyn LayerBuilder>>,
     {
         let tid = TypeId::of::<From>();
         let bindings = self.layer_bindings.entry(tid).or_insert_with(Vec::new);
-        (*bindings).push(Box::new(f))
+        (*bindings).push(Box::new(move |current_layer: &dyn LayerExt| -> _ {
+            // SAFETY: This callback is only to be called if the layer type is `From` therefor we
+            // can safely unwrap here.
+            let l = get_layer!(current_layer, From).expect("dev error: This is always Some");
+            f(l)
+        }));
     }
 
     /// Parse a packet from bytes, returning the un-parsed data

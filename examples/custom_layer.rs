@@ -44,13 +44,9 @@ fn main() {
     pb.bind_layer::<Ether, _>(|_from| Some(Box::new(Ipv4Builder {})));
     pb.bind_layer::<Ipv4, _>(|_from| Some(Box::new(TcpBuilder {})));
 
-    pb.bind_layer::<Tcp, _>(|from| {
-        if let Some(tcp) = get_layer!(from, Tcp) {
-            if tcp.sport == 80 {
-                Some(Box::new(HttpBuilder {}))
-            } else {
-                None
-            }
+    pb.bind_layer::<Tcp, _>(|tcp: &Tcp| {
+        if tcp.sport == 80 {
+            Some(Box::new(HttpBuilder {}))
         } else {
             None
         }
