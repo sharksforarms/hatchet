@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 
 use crate::{
     get_layer,
-    layer::{LayerBuilder, LayerExt, LayerOwned, LayerRef},
+    layer::{LayerExt, LayerOwned, LayerRef},
 };
 
 pub mod error;
@@ -65,7 +65,12 @@ impl Packet {
     }
 }
 
-type LayerBinding = Box<dyn Fn(&dyn LayerExt) -> Option<Box<dyn LayerBuilder>>>;
+type LayerBinding = Box<
+    dyn Fn(
+        &dyn LayerExt,
+    )
+        -> Option<fn(&[u8]) -> Result<(&[u8], Box<dyn LayerExt>), crate::layer::LayerError>>,
+>;
 
 /**
 Parse a [Packet](self::Packet) given layer binding rules
@@ -103,7 +108,7 @@ impl PacketBuilder {
     # use rust_packet::{
     #   is_layer, get_layer,
     #   packet::PacketBuilder,
-    #    layer::{Layer, LayerExt, LayerBuilder, LayerOwned, LayerError}
+    #    layer::{Layer, LayerExt, LayerOwned, LayerError}
     # };
     # #[derive(Debug, PartialEq)]
     # enum EtherType {
@@ -141,20 +146,12 @@ impl PacketBuilder {
     # }
     # #[derive(Debug)]
     # struct Ipv4 {}
-    # struct Ipv4Builder {}
-    # impl LayerBuilder for Ipv4Builder {
-    #     fn parse<'a>(&self, input: &'a [u8]) -> Result<(&'a [u8], Box<dyn LayerExt>), LayerError> {
-    #         let (rest, ipv4) = Ipv4::parse(input)?;
-    #         Ok((rest, Box::new(ipv4)))
-    #     }
-    # }
-
     # fn main() {
         let mut packet_builder = PacketBuilder::without_bindings();
 
         packet_builder.bind_layer::<Ether, _>(|ether: &Ether| {
             match ether.ether_type {
-                EtherType::Ipv4 => Some(Box::new(Ipv4Builder {})),
+                EtherType::Ipv4 => Some(Ipv4::parse_layer),
                 // ...
                 _ => None
             }
@@ -172,7 +169,11 @@ impl PacketBuilder {
     */
     pub fn bind_layer<From: LayerExt + 'static, F>(&mut self, f: F)
     where
-        F: 'static + Fn(&From) -> Option<Box<dyn LayerBuilder>>,
+        F: 'static
+            + Fn(
+                &From,
+            )
+                -> Option<fn(&[u8]) -> Result<(&[u8], Box<dyn LayerExt>), crate::layer::LayerError>>,
     {
         let tid = TypeId::of::<From>();
         let bindings = self.layer_bindings.entry(tid).or_insert_with(Vec::new);
@@ -229,7 +230,7 @@ impl PacketBuilder {
 
             // Next layer becomes the current layer
             if let Some(next_layer_builder) = next_layer_builder {
-                let (new_rest, next_layer) = next_layer_builder.parse(rest)?;
+                let (new_rest, next_layer) = next_layer_builder(rest)?;
                 rest = new_rest;
 
                 layers.push(current_layer);
@@ -263,7 +264,7 @@ mod tests {
     };
 
     macro_rules! declare_test_layer {
-        ($name:ident, $builder:ident) => {
+        ($name:ident) => {
             #[derive(Debug)]
             struct $name {}
             #[allow(dead_code)]
@@ -289,23 +290,12 @@ mod tests {
                     Ok((input, Self {}))
                 }
             }
-
-            struct $builder {}
-            impl LayerBuilder for $builder {
-                fn parse<'a>(
-                    &self,
-                    input: &'a [u8],
-                ) -> Result<(&'a [u8], Box<dyn LayerExt>), LayerError> {
-                    let (rest, layer) = $name::parse(input)?;
-                    Ok((rest, Box::new(layer)))
-                }
-            }
         };
     }
 
-    declare_test_layer!(Layer0, Layer0Builder);
-    declare_test_layer!(Layer1, Layer1Builder);
-    declare_test_layer!(Layer2, Layer2Builder);
+    declare_test_layer!(Layer0);
+    declare_test_layer!(Layer1);
+    declare_test_layer!(Layer2);
 
     #[test]
     fn test_packet_view_from_layers() {
@@ -405,7 +395,7 @@ mod tests {
         let mut pb = PacketBuilder::without_bindings();
         assert_eq!(0, pb.layer_bindings.len());
 
-        pb.bind_layer::<Layer0, _>(|_from| Some(Box::new(Layer1Builder {})));
+        pb.bind_layer::<Layer0, _>(|_from| Some(Layer1::parse_layer));
         assert_eq!(1, pb.layer_bindings.len());
         assert_eq!(
             1,
@@ -415,7 +405,7 @@ mod tests {
                 .len()
         );
 
-        pb.bind_layer::<Layer0, _>(|_from| Some(Box::new(Layer1Builder {})));
+        pb.bind_layer::<Layer0, _>(|_from| Some(Layer1::parse_layer));
         assert_eq!(1, pb.layer_bindings.len());
         assert_eq!(
             2,
@@ -440,7 +430,7 @@ mod tests {
         }
 
         {
-            pb.bind_layer::<Layer0, _>(|_from| Some(Box::new(Layer1Builder {})));
+            pb.bind_layer::<Layer0, _>(|_from| Some(Layer1::parse_layer));
 
             let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
             assert_eq!(2, packet.layers.len());
@@ -454,7 +444,7 @@ mod tests {
         assert_eq!(0, pb.layer_bindings.len());
 
         {
-            pb.bind_layer::<Layer0, _>(|_from| Some(Box::new(Layer1Builder {})));
+            pb.bind_layer::<Layer0, _>(|_from| Some(Layer1::parse_layer));
 
             let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
             assert_eq!(2, packet.layers.len());
@@ -463,7 +453,7 @@ mod tests {
         }
 
         {
-            pb.bind_layer::<Layer0, _>(|_from| Some(Box::new(Layer2Builder {})));
+            pb.bind_layer::<Layer0, _>(|_from| Some(Layer2::parse_layer));
 
             let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
             assert_eq!(2, packet.layers.len());

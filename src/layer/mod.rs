@@ -16,7 +16,9 @@ pub trait AsAny {
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: Any> AsAny for T {
+// AsAny trait implemented on all layers
+// to be able to dynamicaly retrieve original type
+impl<T: Any + Layer> AsAny for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -37,18 +39,20 @@ pub trait LayerExt: core::fmt::Debug + Layer {
 
     /// Parse a layer from bytes
     ///
-    /// Returns the remaining un-parsed data and a Layer
+    /// Returns the remaining un-parsed data and the layer type
     fn parse(input: &[u8]) -> Result<(&[u8], Self), LayerError>
     where
         Self: Sized;
-}
 
-/// Construct a layer
-pub trait LayerBuilder {
     /// Parse a layer from bytes
     ///
-    /// Returns the remaining un-parsed data and a Layer
-    fn parse<'a>(&self, input: &'a [u8]) -> Result<(&'a [u8], Box<dyn LayerExt>), LayerError>;
+    /// Returns the remaining un-parsed data and a dyn Layer
+    fn parse_layer(input: &[u8]) -> Result<(&[u8], Box<dyn LayerExt>), LayerError>
+    where
+        Self: 'static + Sized,
+    {
+        Self::parse(input).map(|(rest, layer)| (rest, Box::new(layer) as Box<dyn LayerExt>))
+    }
 }
 
 /// A reference to a [Layer](self::Layer)

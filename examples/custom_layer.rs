@@ -1,16 +1,12 @@
 use rust_packet::get_layer;
 use rust_packet::layer::layers::Ipv4;
-use rust_packet::layer::layers::Ipv4Builder;
 use rust_packet::layer::layers::Tcp;
-use rust_packet::layer::layers::TcpBuilder;
 use rust_packet::layer::LayerError;
-use rust_packet::layer::{layers::Ether, Layer, LayerBuilder, LayerExt, LayerOwned};
+use rust_packet::layer::{layers::Ether, Layer, LayerExt, LayerOwned};
 use rust_packet::packet::PacketBuilder;
 
 #[derive(Debug, Default)]
 struct Http {}
-
-struct HttpBuilder {}
 
 impl Layer for Http {}
 impl LayerExt for Http {
@@ -32,21 +28,14 @@ impl LayerExt for Http {
     }
 }
 
-impl LayerBuilder for HttpBuilder {
-    fn parse<'a>(&self, input: &'a [u8]) -> Result<(&'a [u8], Box<dyn LayerExt>), LayerError> {
-        let (rest, http) = Http::parse(input)?;
-        Ok((rest, Box::new(http)))
-    }
-}
-
 fn main() {
     let mut pb = PacketBuilder::new();
-    pb.bind_layer::<Ether, _>(|_from| Some(Box::new(Ipv4Builder {})));
-    pb.bind_layer::<Ipv4, _>(|_from| Some(Box::new(TcpBuilder {})));
+    pb.bind_layer::<Ether, _>(|_from| Some(Ipv4::parse_layer));
+    pb.bind_layer::<Ipv4, _>(|_from| Some(Tcp::parse_layer));
 
     pb.bind_layer::<Tcp, _>(|tcp: &Tcp| {
         if tcp.sport == 80 {
-            Some(Box::new(HttpBuilder {}))
+            Some(Http::parse_layer)
         } else {
             None
         }
