@@ -11,5 +11,9 @@
 
 extern crate alloc;
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
 pub mod layer;
 pub mod packet;

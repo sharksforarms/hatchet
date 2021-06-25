@@ -1,12 +1,16 @@
+use hexlit::hex;
 use rust_packet::get_layer;
-use rust_packet::layer::layers::Ipv4;
-use rust_packet::layer::layers::Tcp;
+use rust_packet::layer::ether::Ether;
+use rust_packet::layer::ip::Ipv4;
+use rust_packet::layer::tcp::Tcp;
 use rust_packet::layer::LayerError;
-use rust_packet::layer::{layers::Ether, Layer, LayerExt, LayerOwned};
+use rust_packet::layer::{Layer, LayerExt, LayerOwned};
 use rust_packet::packet::PacketBuilder;
 
 #[derive(Debug, Default)]
-struct Http {}
+struct Http {
+    data: String,
+}
 
 impl Layer for Http {}
 impl LayerExt for Http {
@@ -24,7 +28,10 @@ impl LayerExt for Http {
     where
         Self: Sized,
     {
-        Ok((input, Http {}))
+        let http = Http {
+            data: String::from_utf8_lossy(input).to_string(),
+        };
+        Ok(([].as_ref(), http))
     }
 }
 
@@ -34,13 +41,15 @@ fn main() {
     pb.bind_layer::<Ipv4, _>(|_from| Some(Tcp::parse_layer));
 
     pb.bind_layer::<Tcp, _>(|tcp: &Tcp| {
-        if tcp.sport == 80 {
+        if tcp.dport == 80 {
             Some(Http::parse_layer)
         } else {
             None
         }
     });
 
-    let p = pb.parse_packet::<Ether>(b"asd").unwrap();
+    // Ether / IP / TCP / "hello world"
+    let test_data = hex!("ffffffffffff0000000000000800450000330001000040067cc27f0000017f00000100140050000000000000000050022000ffa2000068656c6c6f20776f726c64");
+    let (_rest, p) = pb.parse_packet::<Ether>(&test_data).unwrap();
     dbg!(p);
 }

@@ -1,7 +1,8 @@
 /*!
   Layer error
 */
-use alloc::string::String;
+use alloc::string::{String, ToString};
+use deku::DekuError;
 
 /// Error parsing or building a layer
 #[derive(Debug, PartialEq, Clone)]
@@ -11,4 +12,13 @@ pub enum LayerError {
     Incomplete(usize),
     /// Parsing error when reading a layer
     Parse(String),
+}
+
+impl From<DekuError> for LayerError {
+    fn from(e: DekuError) -> Self {
+        match e {
+            DekuError::Incomplete(need) => LayerError::Incomplete(need.byte_size()),
+            _ => LayerError::Parse(e.to_string()),
+        }
+    }
 }

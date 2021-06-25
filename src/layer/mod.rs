@@ -11,6 +11,11 @@ pub mod error;
 pub mod layers;
 pub use error::LayerError;
 
+pub mod ether;
+pub mod ip;
+pub mod raw;
+pub mod tcp;
+
 #[doc(hidden)]
 pub trait AsAny {
     fn as_any(&self) -> &dyn Any;
