@@ -121,7 +121,7 @@ pub struct Tcp {
 
 impl Tcp {
     fn read_options(
-        offset: u8, // tcp offset header field
+        offset: u8,
         rest: &BitSlice<Msb0, u8>,
     ) -> Result<(&BitSlice<Msb0, u8>, Vec<TcpOption>), DekuError> {
         let length = offset
@@ -225,22 +225,31 @@ impl Ipv4PseudoHeader {
 impl Layer for Tcp {}
 impl LayerExt for Tcp {
     fn finalize(&mut self, prev: &[LayerOwned], next: &[LayerOwned]) -> Result<(), LayerError> {
+        let tcp_header = {
+            let data = self.to_bytes()?; // TODO: We could verify options length instead
+
+            // align tcp header to 32-bit boundary for offset calculation
+            let pad_amt = 4 * ((data.len() + 3) / 4) - data.len();
+            for _ in 0..pad_amt {
+                self.options.push(TcpOption::EOL);
+            }
+
+            let mut data = self.to_bytes()?;
+
+            // Clear checksum bytes for calculation
+            data[16] = 0x00;
+            data[17] = 0x00;
+
+            data
+        };
+        let tcp_header_len = tcp_header.len();
+
         // Update the tcp checksum
         if let Some(prev_layer) = prev.last() {
-            let tcp_header = {
-                let mut data = self.to_bytes()?;
-
-                // Clear checksum bytes for calculation
-                data[16] = 0x00;
-                data[17] = 0x00;
-
-                data
-            };
             let tcp_payload = crate::layer::utils::data_of_layers(next)?;
 
             // length of tcp header + tcp_payload
-            let tcp_length = tcp_header
-                .len()
+            let tcp_length = tcp_header_len
                 .checked_add(tcp_payload.len())
                 .ok_or_else(|| {
                     LayerError::Finalize(
@@ -282,7 +291,15 @@ impl LayerExt for Tcp {
             }
         }
 
-        // TODO: Update offset
+        debug_assert_eq!(
+            0,
+            tcp_header_len % 4,
+            "dev error: tcp header should be aligned"
+        );
+        // Update offset
+        self.offset = u8::try_from(tcp_header_len / 4)
+            .map_err(|_e| LayerError::Finalize("Failed to convert tcp offset to u8".to_string()))?;
+
         Ok(())
     }
 
@@ -302,13 +319,52 @@ impl LayerExt for Tcp {
 
 #[cfg(test)]
 mod tests {
-    use crate::layer::raw::Raw;
-
     use super::*;
+    use crate::layer::{Layer, LayerError, LayerExt};
     use alloc::boxed::Box;
     use hexlit::hex;
     use rstest::*;
     use std::convert::TryFrom;
+
+    macro_rules! declare_test_layer {
+        ($name:ident, $size:tt) => {
+            #[derive(Debug, Default)]
+            struct $name {}
+            #[allow(dead_code)]
+            impl $name {
+                fn new() -> Self {
+                    Self {}
+                }
+                fn boxed() -> Box<dyn LayerExt> {
+                    Box::new(Self {})
+                }
+            }
+            impl Layer for $name {}
+            impl LayerExt for $name {
+                fn finalize(
+                    &mut self,
+                    _prev: &[LayerOwned],
+                    _next: &[LayerOwned],
+                ) -> Result<(), LayerError> {
+                    unimplemented!()
+                }
+
+                fn parse(_input: &[u8]) -> Result<(&[u8], Self), LayerError>
+                where
+                    Self: Sized,
+                {
+                    unimplemented!()
+                }
+
+                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                    Ok([0u8; $size].to_vec())
+                }
+            }
+        };
+    }
+
+    declare_test_layer!(Layer0, 0);
+    declare_test_layer!(Layer100, 100);
 
     #[rstest(input, expected,
         case(
@@ -394,45 +450,99 @@ mod tests {
     }
 
     #[test]
-    fn test_tcp_finalize_checksum_v4() {
-        let expected_checksum = 0xa958;
+    fn test_tcp_finalize_offset() {
+        let mut tcp = Tcp::default();
+        tcp.finalize(&[], &[]).unwrap();
+        assert_eq!(5, tcp.offset);
 
-        let ipv4 = Box::new(
-            Ipv4::try_from(hex!("450002070f4540008006901091fea0ed41d0e4df").as_ref()).unwrap(),
+        // Extend the tcp options by 32 bits
+        tcp.options.push(TcpOption::NOP);
+        tcp.options.push(TcpOption::NOP);
+        tcp.options.push(TcpOption::NOP);
+        tcp.options.push(TcpOption::NOP);
+
+        tcp.finalize(&[], &[]).unwrap();
+        assert_eq!(6, tcp.offset);
+    }
+
+    #[test]
+    fn test_tcp_finalize_offset_unaligned() {
+        let mut tcp = Tcp::default();
+        assert!(tcp.options.is_empty());
+
+        // Already aligned
+        tcp.finalize(&[], &[]).unwrap();
+        assert!(tcp.options.is_empty());
+
+        // Extend the tcp options to be unaligned
+        tcp.options.push(TcpOption::NOP);
+        tcp.options.push(TcpOption::NOP);
+        assert_eq!(vec![TcpOption::NOP; 2], tcp.options);
+
+        tcp.finalize(&[], &[]).unwrap();
+
+        // Verify that it's aligned with EOL
+        assert_eq!(
+            vec![
+                TcpOption::NOP,
+                TcpOption::NOP,
+                TcpOption::EOL,
+                TcpOption::EOL
+            ],
+            tcp.options
         );
+    }
 
-        let mut tcp =
-            Tcp::try_from(hex!("0d2c005038affe14114c618c501825bc AAAA 0000").as_ref()).unwrap();
+    #[test]
+    fn test_tcp_finalize_checksum_v4() {
+        let expected_checksum = 0x011B;
 
-        let raw = Box::new(Raw::try_from(hex!("474554202f646f776e6c6f61642e68746d6c20485454502f312e310d0a486f73743a207777772e657468657265616c2e636f6d0d0a557365722d4167656e743a204d6f7a696c6c612f352e30202857696e646f77733b20553b2057696e646f7773204e5420352e313b20656e2d55533b2072763a312e3629204765636b6f2f32303034303131330d0a4163636570743a20746578742f786d6c2c6170706c69636174696f6e2f786d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c746578742f68746d6c3b713d302e392c746578742f706c61696e3b713d302e382c696d6167652f706e672c696d6167652f6a7065672c696d6167652f6769663b713d302e322c2a2f2a3b713d302e310d0a4163636570742d4c616e67756167653a20656e2d75732c656e3b713d302e350d0a4163636570742d456e636f64696e673a20677a69702c6465666c6174650d0a4163636570742d436861727365743a2049534f2d383835392d312c7574662d383b713d302e372c2a3b713d302e370d0a4b6565702d416c6976653a203330300d0a436f6e6e656374696f6e3a206b6565702d616c6976650d0a526566657265723a20687474703a2f2f7777772e657468657265616c2e636f6d2f646576656c6f706d656e742e68746d6c0d0a0d0a").as_ref()).unwrap());
+        let ipv4 = Box::new(Ipv4::default());
 
-        tcp.finalize(&[ipv4], &[raw]).unwrap();
+        let mut tcp = Tcp::default();
+
+        tcp.finalize(
+            &[ipv4],
+            &[Layer100::boxed(), Layer0::boxed(), Layer100::boxed()],
+        )
+        .unwrap();
 
         assert_eq!(expected_checksum, tcp.checksum);
     }
 
     #[test]
     fn test_tcp_finalize_checksum_v6() {
-        let expected_checksum = 0x0e91;
+        let expected_checksum = 0x00E7;
 
-        let ipv6 = Box::new(
-            Ipv6::try_from(
-                hex!(
-                "6000000000240680200251834383000000000000518343832001063809020001020102fffee27596"
-            )
-                .as_ref(),
-            )
-            .unwrap(),
-        );
+        let ipv6 = Box::new(Ipv6::default());
 
-        let mut tcp =
-            Tcp::try_from(hex!("04020015626bf2f8e537a573501842640e910000").as_ref()).unwrap();
+        let mut tcp = Tcp::default();
 
-        let raw =
-            Box::new(Raw::try_from(hex!("5553455220616e6f6e796d6f75730d0a").as_ref()).unwrap());
-
-        tcp.finalize(&[ipv6], &[raw]).unwrap();
+        tcp.finalize(
+            &[ipv6],
+            &[Layer100::boxed(), Layer0::boxed(), Layer100::boxed()],
+        )
+        .unwrap();
 
         assert_eq!(expected_checksum, tcp.checksum);
+    }
+
+    #[test]
+    fn test_tcp_finalize() {
+        let mut tcp = Tcp::default();
+        assert_eq!(0, tcp.checksum);
+        assert_eq!(0, tcp.offset);
+
+        let ipv4 = Box::new(Ipv4::default());
+        tcp.finalize(&[ipv4], &[Layer100::boxed()]).unwrap();
+
+        // Only these fields should change during a finalize
+        let expected_tcp = Tcp {
+            checksum: 0x017F,
+            offset: 5,
+            ..Default::default()
+        };
+
+        assert_eq!(expected_tcp, tcp);
     }
 }
