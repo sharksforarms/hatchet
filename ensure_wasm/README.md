@@ -1,5 +1,5 @@
 
-# rust-packet WASM
+# hachet WASM
 
 This crate is used to test wasm compatibility.
 

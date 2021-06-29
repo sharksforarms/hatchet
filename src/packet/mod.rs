@@ -105,10 +105,10 @@ impl PacketBuilder {
     # Example
 
     ```rust
-    # use rust_packet::{
+    # use hachet::{
     #   is_layer, get_layer,
     #   packet::PacketBuilder,
-    #    layer::{Layer, LayerExt, LayerOwned, LayerError}
+    #   layer::{Layer, LayerExt, LayerOwned, LayerError}
     # };
     # #[derive(Debug, PartialEq)]
     # enum EtherType {

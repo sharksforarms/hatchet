@@ -34,7 +34,7 @@ unsafe fn oom(_: ::core::alloc::Layout) -> ! {
 extern "C" fn eh_personality() {}
 
 use alloc::vec::Vec;
-use rust_packet::packet::Packet;
+use hachet::packet::Packet;
 
 #[derive(Debug)]
 pub struct Packets(Vec<Packet>);

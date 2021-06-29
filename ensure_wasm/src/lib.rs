@@ -20,7 +20,7 @@ pub fn set_panic_hook() {
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-use rust_packet::packet::Packet;
+use hachet::packet::Packet;
 
 #[wasm_bindgen]
 #[derive(Debug)]

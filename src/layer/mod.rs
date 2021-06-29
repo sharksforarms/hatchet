@@ -80,8 +80,8 @@ Retrieve original type from a layer
 Example
 
 ```rust
-# use rust_packet::layer::Layer;
-# use rust_packet::get_layer;
+# use hachet::layer::Layer;
+# use hachet::get_layer;
 # struct Ether {}
 # impl Ether {
 #    pub fn new() -> Self {
@@ -109,8 +109,8 @@ Test if a layer is of a certain type
 Example
 
 ```rust
-# use rust_packet::layer::Layer;
-# use rust_packet::is_layer;
+# use hachet::layer::Layer;
+# use hachet::is_layer;
 # struct Ether {}
 # impl Ether {
 #    pub fn new() -> Self {

@@ -19,4 +19,4 @@ alloc = []
 
 [dependencies]
 wee_alloc = "0.4"
-rust-packet = { path = "../", default-features = false }
+hachet = { path = "../", default-features = false }

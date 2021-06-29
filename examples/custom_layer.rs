@@ -1,11 +1,11 @@
+use hachet::get_layer;
+use hachet::layer::ether::Ether;
+use hachet::layer::ip::Ipv4;
+use hachet::layer::tcp::Tcp;
+use hachet::layer::LayerError;
+use hachet::layer::{Layer, LayerExt, LayerOwned};
+use hachet::packet::PacketBuilder;
 use hexlit::hex;
-use rust_packet::get_layer;
-use rust_packet::layer::ether::Ether;
-use rust_packet::layer::ip::Ipv4;
-use rust_packet::layer::tcp::Tcp;
-use rust_packet::layer::LayerError;
-use rust_packet::layer::{Layer, LayerExt, LayerOwned};
-use rust_packet::packet::PacketBuilder;
 
 #[derive(Debug, Default)]
 struct Http {
