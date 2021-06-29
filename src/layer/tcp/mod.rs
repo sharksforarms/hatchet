@@ -166,7 +166,7 @@ impl Default for Tcp {
             dport: 0,
             seq: 0,
             ack: 0,
-            offset: 0,
+            offset: 5,
             flags: TcpFlags::default(),
             window: 0,
             checksum: 0,
@@ -438,7 +438,7 @@ mod tests {
                 dport: 0,
                 seq: 0,
                 ack: 0,
-                offset: 0,
+                offset: 5,
                 flags: TcpFlags::default(),
                 window: 0,
                 checksum: 0,
@@ -452,6 +452,7 @@ mod tests {
     #[test]
     fn test_tcp_finalize_offset() {
         let mut tcp = Tcp::default();
+        assert_eq!(5, tcp.offset);
         tcp.finalize(&[], &[]).unwrap();
         assert_eq!(5, tcp.offset);
 
@@ -495,7 +496,7 @@ mod tests {
 
     #[test]
     fn test_tcp_finalize_checksum_v4() {
-        let expected_checksum = 0x011B;
+        let expected_checksum = 0xB11A;
 
         let ipv4 = Box::new(Ipv4::default());
 
@@ -512,7 +513,7 @@ mod tests {
 
     #[test]
     fn test_tcp_finalize_checksum_v6() {
-        let expected_checksum = 0x00E7;
+        let expected_checksum = 0xB0E6;
 
         let ipv6 = Box::new(Ipv6::default());
 
@@ -531,15 +532,22 @@ mod tests {
     fn test_tcp_finalize() {
         let mut tcp = Tcp::default();
         assert_eq!(0, tcp.checksum);
-        assert_eq!(0, tcp.offset);
+        assert_eq!(5, tcp.offset);
 
+        tcp.options.push(TcpOption::NOP);
         let ipv4 = Box::new(Ipv4::default());
         tcp.finalize(&[ipv4], &[Layer100::boxed()]).unwrap();
 
         // Only these fields should change during a finalize
         let expected_tcp = Tcp {
-            checksum: 0x017F,
-            offset: 5,
+            checksum: 0xB07A,
+            offset: 6,
+            options: vec![
+                TcpOption::NOP,
+                TcpOption::EOL,
+                TcpOption::EOL,
+                TcpOption::EOL,
+            ],
             ..Default::default()
         };
 
