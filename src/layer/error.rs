@@ -12,13 +12,18 @@ pub enum LayerError {
     Incomplete(usize),
     /// Parsing error when reading a layer
     Parse(String),
+    /// Error during finalization
+    Finalize(String),
+    /// Deku Error
+    DekuError(String),
 }
 
 impl From<DekuError> for LayerError {
     fn from(e: DekuError) -> Self {
         match e {
             DekuError::Incomplete(need) => LayerError::Incomplete(need.byte_size()),
-            _ => LayerError::Parse(e.to_string()),
+            DekuError::Parse(_) => LayerError::Parse(e.to_string()),
+            _ => LayerError::DekuError(e.to_string()),
         }
     }
 }

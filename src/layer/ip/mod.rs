@@ -10,11 +10,10 @@ pub use ipv4::Ipv4;
 pub use ipv6::Ipv6;
 pub use protocols::IpProtocol;
 
-use crate::layer::LayerError;
 use core::convert::TryInto;
 
 /// 16-bit ip checksum
-pub fn checksum(input: &[u8]) -> Result<u16, LayerError> {
+pub fn checksum(input: &[u8]) -> u16 {
     let mut sum = 0x00;
     let mut chunks_iter = input.chunks_exact(2);
     while let Some(chunk) = chunks_iter.next() {
@@ -28,9 +27,7 @@ pub fn checksum(input: &[u8]) -> Result<u16, LayerError> {
     }
 
     let carry_add = (sum & 0xffff) + (sum >> 16);
-    let chksum = !(((carry_add & 0xffff) + (carry_add >> 16)) as u16);
-
-    Ok(chksum)
+    !(((carry_add & 0xffff) + (carry_add >> 16)) as u16)
 }
 
 #[cfg(test)]
@@ -47,7 +44,7 @@ mod tests {
         case::validate_rem(&hex!("45000073000040004011 0E61 c0a80001c0a800c7aa"), 0x0000),
     )]
     fn test_checksum(input: &[u8], expected: u16) {
-        let chksum = checksum(&input).unwrap();
+        let chksum = checksum(&input);
         assert_eq!(expected, chksum);
     }
 }

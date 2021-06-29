@@ -6,7 +6,7 @@ use deku::prelude::*;
 
 /// Ip Protocols
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, PartialEq, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, Clone, Copy, DekuRead, DekuWrite)]
 #[deku(
     type = "u8",
     ctx = "endian: deku::ctx::Endian",

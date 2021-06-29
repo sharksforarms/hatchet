@@ -8,7 +8,7 @@ use alloc::{boxed::Box, vec::Vec};
 use core::any::Any;
 
 pub mod error;
-pub mod layers;
+pub(crate) mod utils;
 pub use error::LayerError;
 
 pub mod ether;

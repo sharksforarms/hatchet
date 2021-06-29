@@ -3,7 +3,6 @@
 */
 use crate::layer::{Layer, LayerError, LayerExt, LayerOwned};
 
-//use super::checksum;
 use super::IpProtocol;
 use alloc::string::ToString;
 use alloc::{format, vec, vec::Vec};
@@ -130,40 +129,18 @@ pub struct Ipv4 {
     /// Protocol
     pub protocol: IpProtocol,
     /// Header checksum
-    //#[deku(update = "self.update_checksum()?")]
     pub checksum: u16,
     /// Source IP Address
     pub src: u32,
     /// Destination IP Address
     pub dst: u32,
-    /// List of ipv4 option
+    /// List of ipv4 options
     #[deku(reader = "Ipv4::read_options(*ihl, deku::rest)")]
     pub options: Vec<Ipv4Option>,
 }
 
 impl Ipv4 {
-    //fn update_checksum(&self) -> Result<u16, DekuError> {
-    //let mut ipv4 = self.to_bytes()?;
-
-    //// Bytes 10, 11 are the checksum. Clear them and re-calculate.
-    //ipv4[10] = 0x00;
-    //ipv4[11] = 0x00;
-
-    //checksum(&ipv4).map_err(|e| DekuError::InvalidParam(e.to_string()))
-    //}
-
-    //pub fn update_length(&mut self, data: &[Layer]) -> Result<(), LayerError> {
-    //let header = self.to_bytes()?;
-    //let mut data_buf = Vec::new();
-    //for layer in data {
-    //data_buf.extend(layer.to_bytes()?)
-    //}
-
-    //self.length = u16::try_from(header.len() + data_buf.len())?;
-
-    //Ok(())
-    //}
-
+    /// Read all ipv4 options
     fn read_options(
         ihl: u8, // number of 32 bit words
         rest: &BitSlice<Msb0, u8>,
@@ -198,6 +175,19 @@ impl Ipv4 {
             Ok((rest, vec![]))
         }
     }
+
+    /// Update the checksum field
+    pub fn update_checksum(&mut self) -> Result<(), LayerError> {
+        let mut ipv4 = self.to_vec()?;
+
+        // Bytes 10, 11 are the checksum. Clear them and re-calculate.
+        ipv4[10] = 0x00;
+        ipv4[11] = 0x00;
+
+        self.checksum = super::checksum(&ipv4);
+
+        Ok(())
+    }
 }
 
 impl Default for Ipv4 {
@@ -213,7 +203,7 @@ impl Default for Ipv4 {
             offset: 0,
             ttl: 0,
             protocol: IpProtocol::default(),
-            checksum: 0x1fd,
+            checksum: 0x0000,
             src: 0x7F000001,
             dst: 0x7F000001,
             options: vec![],
@@ -223,10 +213,21 @@ impl Default for Ipv4 {
 
 impl Layer for Ipv4 {}
 impl LayerExt for Ipv4 {
-    fn finalize(&mut self, _prev: &[LayerOwned], _next: &[LayerOwned]) -> Result<(), LayerError> {
-        // TODO: Update length
-        // TODO: Update checksum
-        todo!()
+    fn finalize(&mut self, _prev: &[LayerOwned], next: &[LayerOwned]) -> Result<(), LayerError> {
+        self.update_checksum()?;
+
+        self.length = u16::try_from(
+            self.length()?
+                .checked_add(crate::layer::utils::length_of_layers(next)?)
+                .ok_or_else(|| {
+                    LayerError::Finalize(
+                        "Overflow occured when calculating ipv4 length".to_string(),
+                    )
+                })?,
+        )
+        .map_err(|_e| LayerError::Finalize("Could not convert layer length to u16".to_string()))?;
+
+        Ok(())
     }
 
     fn parse(input: &[u8]) -> Result<(&[u8], Self), LayerError>
@@ -246,9 +247,51 @@ impl LayerExt for Ipv4 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::layer::{Layer, LayerError, LayerExt};
+    use alloc::boxed::Box;
     use hexlit::hex;
     use rstest::*;
     use std::convert::TryFrom;
+
+    macro_rules! declare_test_layer {
+        ($name:ident, $size:tt) => {
+            #[derive(Debug, Default)]
+            struct $name {}
+            #[allow(dead_code)]
+            impl $name {
+                fn new() -> Self {
+                    Self {}
+                }
+                fn boxed() -> Box<dyn LayerExt> {
+                    Box::new(Self {})
+                }
+            }
+            impl Layer for $name {}
+            impl LayerExt for $name {
+                fn finalize(
+                    &mut self,
+                    _prev: &[LayerOwned],
+                    _next: &[LayerOwned],
+                ) -> Result<(), LayerError> {
+                    unimplemented!()
+                }
+
+                fn parse(_input: &[u8]) -> Result<(&[u8], Self), LayerError>
+                where
+                    Self: Sized,
+                {
+                    unimplemented!()
+                }
+
+                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                    Ok([0u8; $size].to_vec())
+                }
+            }
+        };
+    }
+
+    declare_test_layer!(Layer0, 0);
+    declare_test_layer!(Layer100, 100);
 
     #[rstest(input, expected,
         case(
@@ -319,7 +362,7 @@ mod tests {
                 offset: 0,
                 ttl: 0,
                 protocol: IpProtocol::TCP,
-                checksum: 0x1fd,
+                checksum: 0x0000,
                 src: 0x7F000001,
                 dst: 0x7F000001,
                 options: vec![],
@@ -328,28 +371,61 @@ mod tests {
         );
     }
 
-    //#[test]
-    //fn test_ipv4_checksum_update() {
-    //let expected_checksum = 0x9010;
+    #[test]
+    fn test_ipv4_checksum_update() {
+        let expected_checksum = 0x9010;
 
-    //let mut ipv4 =
-    //Ipv4::try_from(hex!("450002070f4540008006 AABB 91fea0ed41d0e4df").as_ref()).unwrap();
+        let mut ipv4 =
+            Ipv4::try_from(hex!("450002070f4540008006 AABB 91fea0ed41d0e4df").as_ref()).unwrap();
 
-    //// Update the checksum
-    //ipv4.update().unwrap();
+        // Update the checksum
+        ipv4.update_checksum().unwrap();
 
-    //assert_eq!(expected_checksum, ipv4.checksum);
-    //}
+        assert_eq!(expected_checksum, ipv4.checksum);
+    }
 
-    //#[rstest(input, expected,
-    //case::valid(&hex!("450002070f4540008006901091fea0ed41d0e4df"), vec![]),
-    //case::modify_chksum(&hex!("450002070f4540008006FF1091fea0ed41d0e4df"), vec![ValidationError::Checksum]),
-    //case::modify_version(&hex!("550002070f4540008006901091fea0ed41d0e4df"), vec![ValidationError::Checksum]),
-    //)]
-    //fn test_ipv4_checksum_validate(input: &[u8], expected: Vec<ValidationError>) {
-    //let ipv4 = Ipv4::try_from(input).unwrap();
+    #[test]
+    fn test_ipv4_finalize_checksum() {
+        let expected_checksum = 0x9010;
 
-    //// validate
-    //assert_eq!(expected, ipv4.validate().unwrap());
-    //}
+        let mut ipv4 =
+            Ipv4::try_from(hex!("450002070f4540008006 AABB 91fea0ed41d0e4df").as_ref()).unwrap();
+
+        // Finalize should update the checksum
+        ipv4.finalize(&[], &[]).unwrap();
+
+        assert_eq!(expected_checksum, ipv4.checksum);
+    }
+
+    #[rstest(expected_length, layers,
+        case::none(20, &[]),
+        case::empty(20, &[Layer0::boxed()]),
+        case::empty(120, &[Layer100::boxed()]),
+        case::empty(220, &[Layer100::boxed(), Layer0::boxed(), Layer100::boxed()]),
+    )]
+    fn test_ipv4_finalize_length(expected_length: u16, layers: &[LayerOwned]) {
+        let mut ipv4 = Ipv4::default();
+
+        // Finalize should update the length
+        ipv4.finalize(&[], layers).unwrap();
+        assert_ne!(0, ipv4.length);
+
+        assert_eq!(expected_length, ipv4.length);
+    }
+
+    #[test]
+    fn test_ipv4_finalize() {
+        let mut ipv4 = Ipv4::default();
+
+        ipv4.finalize(&[Layer100::boxed()], &[Layer100::boxed()])
+            .unwrap();
+
+        // Only these fields should change during a finalize
+        let expected_ipv4 = Ipv4 {
+            checksum: 0x01F7,
+            length: 120,
+            ..Default::default()
+        };
+        assert_eq!(expected_ipv4, ipv4);
+    }
 }
