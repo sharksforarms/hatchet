@@ -416,6 +416,8 @@ mod tests {
     #[test]
     fn test_ipv4_finalize() {
         let mut ipv4 = Ipv4::default();
+        assert_eq!(0, ipv4.checksum);
+        assert_eq!(0, ipv4.length);
 
         ipv4.finalize(&[Layer100::boxed()], &[Layer100::boxed()])
             .unwrap();
