@@ -237,6 +237,10 @@ impl LayerExt for Ipv4 {
         debug_assert_eq!(0, bit_offset);
         Ok((rest, ipv4))
     }
+
+    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(self.to_bytes()?)
+    }
 }
 
 #[cfg(test)]

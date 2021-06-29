@@ -130,6 +130,10 @@ impl PacketBuilder {
     #     {
     #         Ok((input, Ether { ether_type: EtherType::Ipv4 }))
     #     }
+    #
+    #     fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+    #         unimplemented!()
+    #     }
     # }
     # impl Layer for Ipv4 {}
     # impl LayerExt for Ipv4 {
@@ -142,6 +146,10 @@ impl PacketBuilder {
     #         Self: Sized,
     #     {
     #         Ok((input, Ipv4 {}))
+    #     }
+    #
+    #     fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+    #         unimplemented!()
     #     }
     # }
     # #[derive(Debug)]
@@ -289,6 +297,10 @@ mod tests {
                 {
                     Ok((input, Self {}))
                 }
+
+                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                    todo!()
+                }
             }
         };
     }
@@ -365,6 +377,10 @@ mod tests {
             where
                 Self: Sized,
             {
+                unimplemented!()
+            }
+
+            fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
                 unimplemented!()
             }
         }

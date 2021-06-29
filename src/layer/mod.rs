@@ -4,7 +4,7 @@ Layer parsing and construction
 A layer is represented by the [Layer](self::Layer) and [LayerExt](self::LayerExt)
 traits.
 */
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use core::any::Any;
 
 pub mod error;
@@ -57,6 +57,14 @@ pub trait LayerExt: core::fmt::Debug + Layer {
         Self: 'static + Sized,
     {
         Self::parse(input).map(|(rest, layer)| (rest, Box::new(layer) as Box<dyn LayerExt>))
+    }
+
+    /// Layer to bytes
+    fn to_vec(&self) -> Result<Vec<u8>, LayerError>;
+
+    /// Return length of layer
+    fn length(&self) -> Result<usize, LayerError> {
+        Ok(self.to_vec()?.len())
     }
 }
 

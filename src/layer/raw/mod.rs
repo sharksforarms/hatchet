@@ -52,6 +52,10 @@ impl LayerExt for Raw {
         debug_assert_eq!(0, rest.len());
         Ok((rest, raw))
     }
+
+    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(self.to_bytes()?)
+    }
 }
 
 #[cfg(test)]

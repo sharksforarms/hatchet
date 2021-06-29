@@ -33,6 +33,10 @@ impl LayerExt for Http {
         };
         Ok(([].as_ref(), http))
     }
+
+    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+        todo!()
+    }
 }
 
 fn main() {

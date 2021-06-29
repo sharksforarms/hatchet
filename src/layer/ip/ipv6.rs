@@ -108,6 +108,10 @@ impl LayerExt for Ipv6 {
         debug_assert_eq!(0, bit_offset);
         Ok((rest, ipv6))
     }
+
+    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(self.to_bytes()?)
+    }
 }
 
 #[cfg(test)]
