@@ -14,7 +14,7 @@ use deku::prelude::*;
     endian = "endian"
 )]
 pub enum IpProtocol {
-    /// IPv6 Hop-by-Hop Option [RFC1883]
+    /// IPv6 Hop-by-Hop Option [RFC1883](https://datatracker.ietf.org/doc/html/rfc1883)
     #[deku(id = "0")]
     HOPOPT,
     /// internet control message protocol
@@ -56,10 +56,10 @@ pub enum IpProtocol {
     /// "reliable datagram" protocol
     #[deku(id = "27")]
     RDP,
-    /// ISO Transport Protocol class 4 [RFC905]
+    /// ISO Transport Protocol class 4 [RFC905](https://datatracker.ietf.org/doc/html/rfc905)
     #[deku(id = "29")]
     ISOTP4,
-    /// Datagram Congestion Control Prot. [RFC4340]
+    /// Datagram Congestion Control Prot. [RFC4340](https://datatracker.ietf.org/doc/html/rfc4340)
     #[deku(id = "33")]
     DCCP,
     /// Xpress Transfer Protocol
@@ -89,10 +89,10 @@ pub enum IpProtocol {
     /// General Routing Encapsulation
     #[deku(id = "47")]
     GRE,
-    /// Encap Security Payload [RFC2406]
+    /// Encap Security Payload [RFC2406](https://datatracker.ietf.org/doc/html/rfc2406)
     #[deku(id = "50")]
     ESP,
-    /// Authentication Header [RFC2402]
+    /// Authentication Header [RFC2402](https://datatracker.ietf.org/doc/html/rfc2402)
     #[deku(id = "51")]
     AH,
     /// SKIP
@@ -125,10 +125,10 @@ pub enum IpProtocol {
     /// IP-within-IP Encapsulation Protocol
     #[deku(id = "94")]
     IPIP,
-    /// Ethernet-within-IP Encapsulation [RFC3378]
+    /// Ethernet-within-IP Encapsulation [RFC3378](https://datatracker.ietf.org/doc/html/rfc3378)
     #[deku(id = "97")]
     ETHERIP,
-    /// Yet Another IP encapsulation [RFC1241]
+    /// Yet Another IP encapsulation [RFC1241](https://datatracker.ietf.org/doc/html/rfc1241)
     #[deku(id = "98")]
     ENCAP,
     /// Protocol Independent Multicast
@@ -137,10 +137,10 @@ pub enum IpProtocol {
     /// IP Payload Compression Protocol
     #[deku(id = "108")]
     IPCOMP,
-    /// Virtual Router Redundancy Protocol [RFC5798]
+    /// Virtual Router Redundancy Protocol [RFC5798](https://datatracker.ietf.org/doc/html/rfc5798)
     #[deku(id = "112")]
     VRRP,
-    /// Layer Two Tunneling Protocol [RFC2661]
+    /// Layer Two Tunneling Protocol [RFC2661](https://datatracker.ietf.org/doc/html/rfc2661)
     #[deku(id = "115")]
     L2TP,
     /// IS-IS over IPv4
@@ -152,22 +152,22 @@ pub enum IpProtocol {
     /// Fibre Channel
     #[deku(id = "133")]
     FC,
-    /// Mobility Support for IPv6 [RFC3775]
+    /// Mobility Support for IPv6 [RFC3775](https://datatracker.ietf.org/doc/html/rfc3775)
     #[deku(id = "135")]
     MOBILITYHEADER,
-    /// UDP-Lite [RFC3828]
+    /// UDP-Lite [RFC3828](https://datatracker.ietf.org/doc/html/rfc3828)
     #[deku(id = "136")]
     UDPLITE,
-    /// MPLS-in-IP [RFC4023]
+    /// MPLS-in-IP [RFC4023](https://datatracker.ietf.org/doc/html/rfc4023)
     #[deku(id = "137")]
     MPLSINIP,
-    /// MANET Protocols [RFC5498]
+    /// MANET Protocols [RFC5498](https://datatracker.ietf.org/doc/html/rfc5498)
     #[deku(id = "138")]
     MANET,
     /// Host Identity Protocol
     #[deku(id = "139")]
     HIP,
-    /// Shim6 Protocol [RFC5533]
+    /// Shim6 Protocol [RFC5533](https://datatracker.ietf.org/doc/html/rfc5533)
     #[deku(id = "140")]
     SHIM6,
     /// Wrapped Encapsulating Security Payload
