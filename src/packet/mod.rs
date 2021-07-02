@@ -64,6 +64,12 @@ impl Packet {
     pub fn layers_mut(&mut self) -> &mut [LayerOwned] {
         &mut self.layers
     }
+
+    /// Packet to bytes
+    // TODO: Rename to_vec?
+    pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
+        Ok(crate::layer::utils::data_of_layers(&self.layers)?)
+    }
 }
 
 type LayerBinding = Box<

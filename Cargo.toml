@@ -10,12 +10,19 @@ categories = ["network-programming", "simulation", "parsing", "no-std"]
 description = "Network packet manipulation toolkit"
 readme = "README.md"
 
+[package.metadata.docs.rs]
+features = ["pnet", "pcap", "netmap"]
+
 [features]
-default = []
+default = ["std"]
+std = ["pnet"]
+netmap = ["pnet/netmap"]
+pcap = ["pnet/pcap"]
 
 [dependencies]
 hashbrown = "0.11"
 deku = { version = "0.12", default-features = false, features = ["alloc"] }
+pnet = { version = "0.28", optional = true }
 
 [dev-dependencies]
 rstest = "0.10.0"
