@@ -2,14 +2,15 @@
   Packet parsing and construction
 */
 
-use alloc::{boxed::Box, vec, vec::Vec};
-use core::any::TypeId;
-use hashbrown::HashMap;
-
 use crate::{
     get_layer,
     layer::{LayerExt, LayerOwned, LayerRef},
 };
+use alloc::{boxed::Box, vec, vec::Vec};
+use core::any::TypeId;
+use hashbrown::HashMap;
+
+mod bindings;
 
 pub mod error;
 pub use error::PacketError;
@@ -84,8 +85,7 @@ pub struct PacketBuilder {
 }
 
 impl PacketBuilder {
-    /// Create a packet builder with default bindings
-    // TODO: Add table/list of existing bindings, autogenerate somehow?
+    /// Create a packet builder with default bindings.
     pub fn new() -> Self {
         PacketBuilder::default()
     }
@@ -261,10 +261,7 @@ impl PacketBuilder {
 
 impl Default for PacketBuilder {
     fn default() -> Self {
-        // TODO: Add default layer bindings here? Ether -> Ip... etc
-        PacketBuilder {
-            layer_bindings: HashMap::new(),
-        }
+        bindings::create_packetbuilder()
     }
 }
 
