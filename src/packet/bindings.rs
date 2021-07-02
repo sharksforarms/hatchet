@@ -30,5 +30,7 @@ pub(crate) fn create_packetbuilder() -> PacketBuilder {
         _ => Some(Raw::parse_layer),
     });
 
+    pb.bind_layer(|_tcp: &Tcp, _rest| Some(Raw::parse_layer));
+
     pb
 }
