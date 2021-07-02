@@ -41,10 +41,10 @@ impl LayerExt for Http {
 
 fn main() {
     let mut pb = PacketBuilder::new();
-    pb.bind_layer::<Ether, _>(|_from| Some(Ipv4::parse_layer));
-    pb.bind_layer::<Ipv4, _>(|_from| Some(Tcp::parse_layer));
+    pb.bind_layer(|_from: &Ether, _rest| Some(Ipv4::parse_layer));
+    pb.bind_layer(|_from: &Ipv4, _rest| Some(Tcp::parse_layer));
 
-    pb.bind_layer::<Tcp, _>(|tcp: &Tcp| {
+    pb.bind_layer(|tcp: &Tcp, _rest| {
         if tcp.dport == 80 {
             Some(Http::parse_layer)
         } else {
