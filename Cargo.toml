@@ -32,3 +32,11 @@ criterion = "0.3.4"
 [[bench]]
 name = "bench_layers"
 harness = false
+
+[[example]]
+name = "read_pcap"
+required-features = ["pcap"]
+
+[[example]]
+name = "read_write_interface"
+required-features = ["pcap"]
