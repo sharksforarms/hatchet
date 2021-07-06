@@ -17,16 +17,16 @@ use crate::datalink::error::DataLinkError;
 use crate::packet::{Packet, PacketBuilder};
 
 /// A generic Packet interface used to Read and Write packets
-pub struct Interface<Rx: PacketRead, Tx: PacketWrite> {
-    rx: Rx,
-    tx: Tx,
+pub struct Interface<R: PacketRead, W: PacketWrite> {
+    reader: R,
+    writer: W,
 }
 
-impl<Rx: PacketRead, Tx: PacketWrite> Interface<Rx, Tx> {
+impl<R: PacketRead, W: PacketWrite> Interface<R, W> {
     /// Initialize read/write interface
-    pub fn init<T: PacketInterface<Rx = Rx, Tx = Tx>>(
+    pub fn init<T: PacketInterface<Reader = R, Writer = W>>(
         name: &str,
-    ) -> Result<Interface<T::Rx, T::Tx>, DataLinkError>
+    ) -> Result<Interface<T::Reader, T::Writer>, DataLinkError>
     where
         Self: Sized,
     {
@@ -37,50 +37,61 @@ impl<Rx: PacketRead, Tx: PacketWrite> Interface<Rx, Tx> {
     pub fn init_with_builder<T: PacketInterface>(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<Interface<T::Rx, T::Tx>, DataLinkError>
+    ) -> Result<Interface<T::Reader, T::Writer>, DataLinkError>
     where
         Self: Sized,
     {
         T::init_with_builder(name, packet_builder)
     }
-}
 
-impl<Rx: PacketRead, Tx: PacketWrite> Iterator for Interface<Rx, Tx> {
-    type Item = Packet;
+    /// Split interface into referenced read and write interfaces
+    pub fn split(&mut self) -> (InterfaceReaderRef<'_, R>, InterfaceWriterRef<'_, W>) {
+        (
+            InterfaceReaderRef {
+                reader: &mut self.reader,
+            },
+            InterfaceWriterRef {
+                writer: &mut self.writer,
+            },
+        )
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let packet = self.rx.read();
-        if let Ok(packet) = packet {
-            Some(packet)
-        } else {
-            None
-        }
+    /// Split interface into owned read and write interfaces
+    pub fn into_split(self) -> (InterfaceReader<R>, InterfaceWriter<W>) {
+        (
+            InterfaceReader {
+                reader: self.reader,
+            },
+            InterfaceWriter {
+                writer: self.writer,
+            },
+        )
     }
 }
 
-impl<Rx: PacketRead, Tx: PacketWrite> PacketWrite for Interface<Rx, Tx> {
+impl<R: PacketRead, W: PacketWrite> PacketWrite for Interface<R, W> {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
-        self.tx.write(packet)
+        self.writer.write(packet)
     }
 }
 
-impl<Rx: PacketRead, Tx: PacketWrite> PacketRead for Interface<Rx, Tx> {
+impl<R: PacketRead, W: PacketWrite> PacketRead for Interface<R, W> {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
 /// Read + Write packet interface
 pub trait PacketInterface {
     /// Packet reader
-    type Rx: PacketRead;
+    type Reader: PacketRead;
     /// Packet writer
-    type Tx: PacketWrite;
+    type Writer: PacketWrite;
 
     /// Initialization of an interface
     ///
     /// `name` could be a network interface, device id, pcap filename, etc.
-    fn init(name: &str) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError>
+    fn init(name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized;
 
@@ -90,7 +101,7 @@ pub trait PacketInterface {
     fn init_with_builder(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError>
+    ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized;
 }
@@ -98,12 +109,12 @@ pub trait PacketInterface {
 /// Read-only packet interface
 pub trait PacketInterfaceRead {
     /// Packet reader
-    type Rx: PacketRead;
+    type Reader: PacketRead;
 
     /// Initialization of an interface
     ///
     /// `name` could be a network interface, device id, pcap filename, etc.
-    fn init(name: &str) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    fn init(name: &str) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized;
 
@@ -113,7 +124,7 @@ pub trait PacketInterfaceRead {
     fn init_with_builder(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized;
 }
@@ -121,12 +132,12 @@ pub trait PacketInterfaceRead {
 /// Write-only packet interface
 pub trait PacketInterfaceWrite {
     /// Packet writer
-    type Tx: PacketWrite;
+    type Writer: PacketWrite;
 
     /// Initialization of an interface
     ///
     /// `name` could be a network interface, device id, pcap filename, etc.
-    fn init(name: &str) -> Result<InterfaceTx<Self::Tx>, DataLinkError>
+    fn init(name: &str) -> Result<InterfaceWriter<Self::Writer>, DataLinkError>
     where
         Self: Sized;
 }
@@ -144,52 +155,52 @@ pub trait PacketWrite {
 }
 
 /// Unimplemented packet writer
-pub struct UnimplementedTx;
-impl PacketWrite for UnimplementedTx {
+pub struct UnimplementedWriter;
+impl PacketWrite for UnimplementedWriter {
     fn write(&mut self, _packet: Packet) -> Result<(), DataLinkError> {
         unimplemented!()
     }
 }
 /// Unimplemented packet reader
-pub struct UnimplementedRx;
-impl PacketRead for UnimplementedRx {
+pub struct UnimplementedReader;
+impl PacketRead for UnimplementedReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         unimplemented!()
     }
 }
 
 /// Reference to read-only interface
-pub struct InterfaceRxRef<'a, T>
+pub struct InterfaceReaderRef<'a, T>
 where
     T: PacketRead,
 {
-    rx: &'a mut T,
+    reader: &'a mut T,
 }
 
 /// Reference to write-only interface
-pub struct InterfaceTxRef<'a, T>
+pub struct InterfaceWriterRef<'a, T>
 where
     T: PacketWrite,
 {
-    tx: &'a mut T,
+    writer: &'a mut T,
 }
 
 /// Read-only interface
-pub struct InterfaceRx<Rx>
+pub struct InterfaceReader<R>
 where
-    Rx: PacketRead,
+    R: PacketRead,
 {
-    rx: Rx,
+    reader: R,
 }
 
-impl<Rx> InterfaceRx<Rx>
+impl<R> InterfaceReader<R>
 where
-    Rx: PacketRead,
+    R: PacketRead,
 {
     /// Initialize read-only interface
-    pub fn init<T: PacketInterfaceRead<Rx = Rx>>(
+    pub fn init<T: PacketInterfaceRead<Reader = R>>(
         name: &str,
-    ) -> Result<InterfaceRx<T::Rx>, DataLinkError>
+    ) -> Result<InterfaceReader<T::Reader>, DataLinkError>
     where
         Self: Sized,
     {
@@ -197,10 +208,10 @@ where
     }
 
     /// Initialize read-only interface with custom builder
-    pub fn init_with_builder<T: PacketInterfaceRead<Rx = Rx>>(
+    pub fn init_with_builder<T: PacketInterfaceRead<Reader = R>>(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<InterfaceRx<T::Rx>, DataLinkError>
+    ) -> Result<InterfaceReader<T::Reader>, DataLinkError>
     where
         Self: Sized,
     {
@@ -209,21 +220,21 @@ where
 }
 
 /// Write-only interface
-pub struct InterfaceTx<Tx>
+pub struct InterfaceWriter<W>
 where
-    Tx: PacketWrite,
+    W: PacketWrite,
 {
-    tx: Tx,
+    writer: W,
 }
 
-impl<Tx> InterfaceTx<Tx>
+impl<W> InterfaceWriter<W>
 where
-    Tx: PacketWrite,
+    W: PacketWrite,
 {
     /// Initialize write-only interface
-    pub fn init<T: PacketInterfaceWrite<Tx = Tx>>(
+    pub fn init<T: PacketInterfaceWrite<Writer = W>>(
         name: &str,
-    ) -> Result<InterfaceTx<T::Tx>, DataLinkError>
+    ) -> Result<InterfaceWriter<T::Writer>, DataLinkError>
     where
         Self: Sized,
     {
@@ -231,35 +242,35 @@ where
     }
 }
 
-impl<'a, T: PacketRead> PacketRead for InterfaceRxRef<'a, T> {
+impl<'a, T: PacketRead> PacketRead for InterfaceReaderRef<'a, T> {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
-impl<T: PacketRead> PacketRead for InterfaceRx<T> {
+impl<T: PacketRead> PacketRead for InterfaceReader<T> {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
-impl<'a, T: PacketWrite> PacketWrite for InterfaceTxRef<'a, T> {
+impl<'a, T: PacketWrite> PacketWrite for InterfaceWriterRef<'a, T> {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
-        self.tx.write(packet)
+        self.writer.write(packet)
     }
 }
 
-impl<T: PacketWrite> PacketWrite for InterfaceTx<T> {
+impl<T: PacketWrite> PacketWrite for InterfaceWriter<T> {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
-        self.tx.write(packet)
+        self.writer.write(packet)
     }
 }
 
-impl<T: PacketRead> Iterator for InterfaceRxRef<'_, T> {
+impl<R: PacketRead, W: PacketWrite> Iterator for Interface<R, W> {
     type Item = Packet;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let packet = self.rx.read();
+        let packet = self.reader.read();
         if let Ok(packet) = packet {
             Some(packet)
         } else {
@@ -268,11 +279,11 @@ impl<T: PacketRead> Iterator for InterfaceRxRef<'_, T> {
     }
 }
 
-impl<T: PacketRead> Iterator for InterfaceRx<T> {
+impl<T: PacketRead> Iterator for InterfaceReaderRef<'_, T> {
     type Item = Packet;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let packet = self.rx.read();
+        let packet = self.reader.read();
         if let Ok(packet) = packet {
             Some(packet)
         } else {
@@ -281,32 +292,15 @@ impl<T: PacketRead> Iterator for InterfaceRx<T> {
     }
 }
 
-/// Split an interface into a reader and a writer interface
-pub trait PacketInterfaceSplit: PacketRead + PacketWrite {
-    /// Packet reader
-    type Rx: PacketRead;
-    /// Packet writer
-    type Tx: PacketWrite;
+impl<T: PacketRead> Iterator for InterfaceReader<T> {
+    type Item = Packet;
 
-    /// Split interface into referenced read and write interfaces
-    fn split(&mut self) -> (InterfaceRxRef<'_, Self::Rx>, InterfaceTxRef<'_, Self::Tx>);
-
-    /// Split interface into owned read and write interfaces
-    fn into_split(self) -> (InterfaceRx<Self::Rx>, InterfaceTx<Self::Tx>);
-}
-
-impl<Rx: PacketRead, Tx: PacketWrite> PacketInterfaceSplit for Interface<Rx, Tx> {
-    type Rx = Rx;
-    type Tx = Tx;
-
-    fn split(&mut self) -> (InterfaceRxRef<'_, Self::Rx>, InterfaceTxRef<'_, Self::Tx>) {
-        (
-            InterfaceRxRef { rx: &mut self.rx },
-            InterfaceTxRef { tx: &mut self.tx },
-        )
-    }
-
-    fn into_split(self) -> (InterfaceRx<Self::Rx>, InterfaceTx<Self::Tx>) {
-        (InterfaceRx { rx: self.rx }, InterfaceTx { tx: self.tx })
+    fn next(&mut self) -> Option<Self::Item> {
+        let packet = self.reader.read();
+        if let Ok(packet) = packet {
+            Some(packet)
+        } else {
+            None
+        }
     }
 }

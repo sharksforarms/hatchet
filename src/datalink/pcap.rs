@@ -5,42 +5,44 @@ libpcap interface exposed via libpnet
 */
 use pnet::datalink::{self, Channel, DataLinkReceiver, DataLinkSender, NetworkInterface};
 
-use super::{DataLinkError, PacketInterface, PacketInterfaceSplit, PacketRead, PacketWrite};
+use super::{DataLinkError, PacketInterface, PacketRead, PacketWrite};
 use crate::{
-    datalink::{Interface, InterfaceRx, InterfaceTx, PacketInterfaceRead, PacketInterfaceWrite},
+    datalink::{
+        Interface, InterfaceReader, InterfaceWriter, PacketInterfaceRead, PacketInterfaceWrite,
+    },
     layer::ether::Ether,
     packet::{Packet, PacketBuilder},
 };
 
 /// LibPcap network interface
 pub struct Pcap {
-    rx: PcapRx,
-    tx: PcapTx,
+    reader: PcapReader,
+    writer: PcapWriter,
 }
 
 /// LibPcap reader
-pub struct PcapRx {
+pub struct PcapReader {
     packet_builder: PacketBuilder,
-    rx: Box<dyn DataLinkReceiver + 'static>,
+    reader: Box<dyn DataLinkReceiver + 'static>,
 }
 
 /// LibPcap writer
-pub struct PcapTx {
-    tx: Box<dyn DataLinkSender + 'static>,
+pub struct PcapWriter {
+    writer: Box<dyn DataLinkSender + 'static>,
 }
 
 impl PacketInterface for Pcap {
-    type Rx = PcapRx;
-    type Tx = PcapTx;
+    type Reader = PcapReader;
+    type Writer = PcapWriter;
 
-    fn init(interface_name: &str) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
+    fn init(interface_name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
         <Self as PacketInterface>::init_with_builder(interface_name, PacketBuilder::new())
     }
 
     fn init_with_builder(
         interface_name: &str,
         packet_builder: crate::packet::PacketBuilder,
-    ) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError>
+    ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized,
     {
@@ -61,16 +63,19 @@ impl PacketInterface for Pcap {
         }?;
 
         Ok(Interface {
-            rx: PcapRx { packet_builder, rx },
-            tx: PcapTx { tx },
+            reader: PcapReader {
+                packet_builder,
+                reader: rx,
+            },
+            writer: PcapWriter { writer: tx },
         })
     }
 }
 
 impl PacketInterfaceRead for Pcap {
-    type Rx = PcapRx;
+    type Reader = PcapReader;
 
-    fn init(name: &str) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    fn init(name: &str) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized,
     {
@@ -80,38 +85,38 @@ impl PacketInterfaceRead for Pcap {
     fn init_with_builder(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized,
     {
-        let (rx, _tx) =
+        let (reader, _writer) =
             <Pcap as PacketInterface>::init_with_builder(name, packet_builder)?.into_split();
 
-        Ok(rx)
+        Ok(reader)
     }
 }
 
 impl PacketInterfaceWrite for Pcap {
-    type Tx = PcapTx;
+    type Writer = PcapWriter;
 
-    fn init(name: &str) -> Result<InterfaceTx<Self::Tx>, DataLinkError>
+    fn init(name: &str) -> Result<InterfaceWriter<Self::Writer>, DataLinkError>
     where
         Self: Sized,
     {
-        let (_rx, tx) = <Self as PacketInterface>::init(name)?.into_split();
-        Ok(tx)
+        let (_reader, writer) = <Self as PacketInterface>::init(name)?.into_split();
+        Ok(writer)
     }
 }
 
 impl PacketRead for Pcap {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
-impl PacketRead for PcapRx {
+impl PacketRead for PcapReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        match self.rx.next() {
+        match self.reader.next() {
             Ok(packet_bytes) => {
                 let (_rest, packet) = self.packet_builder.parse_packet::<Ether>(packet_bytes)?;
                 // TODO: log warning of un-read data?
@@ -124,14 +129,14 @@ impl PacketRead for PcapRx {
 
 impl PacketWrite for Pcap {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
-        self.tx.write(packet)
+        self.writer.write(packet)
     }
 }
 
-impl PacketWrite for PcapTx {
+impl PacketWrite for PcapWriter {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
         let bytes = packet.to_bytes()?;
-        if let Some(res) = self.tx.send_to(bytes.as_ref(), None) {
+        if let Some(res) = self.writer.send_to(bytes.as_ref(), None) {
             Ok(res?)
         } else {
             Err(DataLinkError::BufferError)

@@ -1,6 +1,6 @@
 use deku::DekuContainerRead;
 use hachet::{
-    datalink::{pcap::Pcap, Interface, PacketInterfaceSplit, PacketWrite},
+    datalink::{pcap::Pcap, Interface, PacketWrite},
     layer::{ether::Ether, ip::Ipv4, raw::Raw, tcp::Tcp, LayerOwned},
     packet::Packet,
 };

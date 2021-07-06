@@ -13,33 +13,33 @@ use alloc::boxed::Box;
 
 /// Pnet network interface
 pub struct Pnet {
-    rx: PnetRx,
-    tx: PnetTx,
+    reader: PnetReader,
+    writer: PnetWriter,
 }
 
 /// Pnet reader
-pub struct PnetRx {
+pub struct PnetReader {
     packet_builder: PacketBuilder,
-    rx: Box<dyn DataLinkReceiver + 'static>,
+    reader: Box<dyn DataLinkReceiver + 'static>,
 }
 
 /// Pnet writer
-pub struct PnetTx {
-    tx: Box<dyn DataLinkSender + 'static>,
+pub struct PnetWriter {
+    writer: Box<dyn DataLinkSender + 'static>,
 }
 
 impl PacketInterface for Pnet {
-    type Rx = PnetRx;
-    type Tx = PnetTx;
+    type Reader = PnetReader;
+    type Writer = PnetWriter;
 
-    fn init(interface_name: &str) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
+    fn init(interface_name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
         Self::init_with_builder(interface_name, PacketBuilder::new())
     }
 
     fn init_with_builder(
         interface_name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
+    ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
         let interface_names_match = |iface: &NetworkInterface| iface.name == interface_name;
 
         // Find the network interface with the provided name
@@ -56,21 +56,24 @@ impl PacketInterface for Pnet {
         }?;
 
         Ok(Interface {
-            rx: PnetRx { packet_builder, rx },
-            tx: PnetTx { tx },
+            reader: PnetReader {
+                packet_builder,
+                reader: rx,
+            },
+            writer: PnetWriter { writer: tx },
         })
     }
 }
 
 impl PacketRead for Pnet {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
-impl PacketRead for PnetRx {
+impl PacketRead for PnetReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        match self.rx.next() {
+        match self.reader.next() {
             Ok(packet_bytes) => {
                 let (_rest, packet) = self.packet_builder.parse_packet::<Ether>(packet_bytes)?;
                 // TODO: log warning of un-read data?
@@ -83,14 +86,14 @@ impl PacketRead for PnetRx {
 
 impl PacketWrite for Pnet {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
-        self.tx.write(packet)
+        self.writer.write(packet)
     }
 }
 
-impl PacketWrite for PnetTx {
+impl PacketWrite for PnetWriter {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
         let bytes = packet.to_bytes()?;
-        if let Some(res) = self.tx.send_to(bytes.as_ref(), None) {
+        if let Some(res) = self.writer.send_to(bytes.as_ref(), None) {
             Ok(res?)
         } else {
             Err(DataLinkError::BufferError)

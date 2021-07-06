@@ -9,36 +9,34 @@ use pnet::datalink::{self, Channel, DataLinkReceiver};
 
 use super::{DataLinkError, PacketInterface, PacketRead};
 use crate::{
-    datalink::{
-        Interface, InterfaceRx, PacketInterfaceRead, PacketInterfaceSplit, UnimplementedTx,
-    },
+    datalink::{Interface, InterfaceReader, PacketInterfaceRead, UnimplementedWriter},
     layer::ether::Ether,
     packet::{Packet, PacketBuilder},
 };
 
 /// Pcap file based interface
 pub struct PcapFile {
-    rx: PcapFileRx,
+    rx: PcapFileReader,
 }
 
 /// Pcap file reader
-pub struct PcapFileRx {
+pub struct PcapFileReader {
     packet_builder: PacketBuilder,
     rx: Box<dyn DataLinkReceiver + 'static>,
 }
 
 impl PacketInterface for PcapFile {
-    type Rx = PcapFileRx;
-    type Tx = UnimplementedTx; // TODO: support pcap file writing
+    type Reader = PcapFileReader;
+    type Writer = UnimplementedWriter; // TODO: support pcap file writing
 
-    fn init(filename: &str) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
+    fn init(filename: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
         <Self as PacketInterface>::init_with_builder(filename, PacketBuilder::new())
     }
 
     fn init_with_builder(
         filename: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError>
+    ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized,
     {
@@ -49,16 +47,16 @@ impl PacketInterface for PcapFile {
         }?;
 
         Ok(Interface {
-            rx: PcapFileRx { packet_builder, rx },
-            tx: UnimplementedTx {},
+            reader: PcapFileReader { packet_builder, rx },
+            writer: UnimplementedWriter {},
         })
     }
 }
 
 impl PacketInterfaceRead for PcapFile {
-    type Rx = PcapFileRx;
+    type Reader = PcapFileReader;
 
-    fn init(name: &str) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    fn init(name: &str) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized,
     {
@@ -68,14 +66,14 @@ impl PacketInterfaceRead for PcapFile {
     fn init_with_builder(
         name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<InterfaceRx<Self::Rx>, DataLinkError>
+    ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized,
     {
-        let (rx, _tx) =
+        let (reader, _writer) =
             <PcapFile as PacketInterface>::init_with_builder(name, packet_builder)?.into_split();
 
-        Ok(rx)
+        Ok(reader)
     }
 }
 
@@ -85,7 +83,7 @@ impl PacketRead for PcapFile {
     }
 }
 
-impl PacketRead for PcapFileRx {
+impl PacketRead for PcapFileReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         match self.rx.next() {
             Ok(packet_bytes) => {
