@@ -5,6 +5,7 @@ use pnet::datalink::{self, Channel, DataLinkReceiver, DataLinkSender, NetworkInt
 
 use super::{DataLinkError, PacketInterface, PacketRead, PacketWrite};
 use crate::{
+    datalink::Interface,
     layer::ether::Ether,
     packet::{Packet, PacketBuilder},
 };
@@ -12,16 +13,33 @@ use alloc::boxed::Box;
 
 /// Pnet network interface
 pub struct Pnet {
+    rx: PnetRx,
+    tx: PnetTx,
+}
+
+/// Pnet reader
+pub struct PnetRx {
     packet_builder: PacketBuilder,
     rx: Box<dyn DataLinkReceiver + 'static>,
+}
+
+/// Pnet writer
+pub struct PnetTx {
     tx: Box<dyn DataLinkSender + 'static>,
 }
 
 impl PacketInterface for Pnet {
+    type Rx = PnetRx;
+    type Tx = PnetTx;
+
+    fn init(interface_name: &str) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
+        Self::init_with_builder(interface_name, PacketBuilder::new())
+    }
+
     fn init_with_builder(
         interface_name: &str,
         packet_builder: PacketBuilder,
-    ) -> Result<Self, DataLinkError> {
+    ) -> Result<Interface<Self::Rx, Self::Tx>, DataLinkError> {
         let interface_names_match = |iface: &NetworkInterface| iface.name == interface_name;
 
         // Find the network interface with the provided name
@@ -37,19 +55,20 @@ impl PacketInterface for Pnet {
             Err(e) => Err(DataLinkError::IoError(e)),
         }?;
 
-        Ok(Pnet {
-            packet_builder,
-            rx,
-            tx,
+        Ok(Interface {
+            rx: PnetRx { packet_builder, rx },
+            tx: PnetTx { tx },
         })
-    }
-
-    fn init(interface_name: &str) -> Result<Self, DataLinkError> {
-        Self::init_with_builder(interface_name, PacketBuilder::new())
     }
 }
 
 impl PacketRead for Pnet {
+    fn read(&mut self) -> Result<Packet, DataLinkError> {
+        self.rx.read()
+    }
+}
+
+impl PacketRead for PnetRx {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         match self.rx.next() {
             Ok(packet_bytes) => {
@@ -63,6 +82,12 @@ impl PacketRead for Pnet {
 }
 
 impl PacketWrite for Pnet {
+    fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
+        self.tx.write(packet)
+    }
+}
+
+impl PacketWrite for PnetTx {
     fn write(&mut self, packet: Packet) -> Result<(), DataLinkError> {
         let bytes = packet.to_bytes()?;
         if let Some(res) = self.tx.send_to(bytes.as_ref(), None) {
