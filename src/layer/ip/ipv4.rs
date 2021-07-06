@@ -178,7 +178,7 @@ impl Ipv4 {
 
     /// Update the checksum field
     pub fn update_checksum(&mut self) -> Result<(), LayerError> {
-        let mut ipv4 = self.to_vec()?;
+        let mut ipv4 = LayerExt::to_bytes(self)?;
 
         // Bytes 10, 11 are the checksum. Clear them and re-calculate.
         ipv4[10] = 0x00;
@@ -239,8 +239,8 @@ impl LayerExt for Ipv4 {
         Ok((rest, ipv4))
     }
 
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
-        Ok(self.to_bytes()?)
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(DekuContainerWrite::to_bytes(self)?)
     }
 }
 
@@ -283,7 +283,7 @@ mod tests {
                     unimplemented!()
                 }
 
-                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                     Ok([0u8; $size].to_vec())
                 }
             }
@@ -344,7 +344,7 @@ mod tests {
         let ret_read = Ipv4::try_from(input).unwrap();
         assert_eq!(expected, ret_read);
 
-        let ret_write = ret_read.to_bytes().unwrap();
+        let ret_write = LayerExt::to_bytes(&ret_read).unwrap();
         assert_eq!(input.to_vec(), ret_write);
     }
 

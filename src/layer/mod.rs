@@ -60,11 +60,11 @@ pub trait LayerExt: core::fmt::Debug + Layer {
     }
 
     /// Layer to bytes
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError>;
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError>;
 
     /// Return length of layer
     fn length(&self) -> Result<usize, LayerError> {
-        Ok(self.to_vec()?.len())
+        Ok(self.to_bytes()?.len())
     }
 }
 

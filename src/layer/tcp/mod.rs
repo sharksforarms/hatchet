@@ -226,7 +226,7 @@ impl Layer for Tcp {}
 impl LayerExt for Tcp {
     fn finalize(&mut self, prev: &[LayerOwned], next: &[LayerOwned]) -> Result<(), LayerError> {
         let tcp_header = {
-            let data = self.to_bytes()?; // TODO: We could verify options length instead
+            let data = LayerExt::to_bytes(self)?; // TODO: We could verify options length instead
 
             // align tcp header to 32-bit boundary for offset calculation
             let pad_amt = 4 * ((data.len() + 3) / 4) - data.len();
@@ -234,7 +234,7 @@ impl LayerExt for Tcp {
                 self.options.push(TcpOption::EOL);
             }
 
-            let mut data = self.to_bytes()?;
+            let mut data = LayerExt::to_bytes(self)?;
 
             // Clear checksum bytes for calculation
             data[16] = 0x00;
@@ -312,8 +312,8 @@ impl LayerExt for Tcp {
         Ok((rest, tcp))
     }
 
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
-        Ok(self.to_bytes()?)
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(DekuContainerWrite::to_bytes(self)?)
     }
 }
 
@@ -356,7 +356,7 @@ mod tests {
                     unimplemented!()
                 }
 
-                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                     Ok([0u8; $size].to_vec())
                 }
             }
@@ -426,7 +426,7 @@ mod tests {
         let ret_read = Tcp::try_from(input).unwrap();
         assert_eq!(expected, ret_read);
 
-        let ret_write = ret_read.to_bytes().unwrap();
+        let ret_write = LayerExt::to_bytes(&ret_read).unwrap();
         assert_eq!(input.to_vec(), ret_write);
     }
 

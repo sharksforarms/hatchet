@@ -26,11 +26,11 @@ macro_rules! gen_header_bench {
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     // # LAYER: Benchmarks
-    gen_header_bench!(c, bench_raw, Raw::default().to_vec().unwrap(), Raw);
-    gen_header_bench!(c, bench_ether, Ether::default().to_vec().unwrap(), Ether);
-    gen_header_bench!(c, bench_ipv4, Ipv4::default().to_vec().unwrap(), Ipv4);
-    gen_header_bench!(c, bench_ipv6, Ipv6::default().to_vec().unwrap(), Ipv6);
-    gen_header_bench!(c, bench_tcp, Tcp::default().to_vec().unwrap(), Tcp);
+    gen_header_bench!(c, bench_raw, Raw::default().to_bytes().unwrap(), Raw);
+    gen_header_bench!(c, bench_ether, Ether::default().to_bytes().unwrap(), Ether);
+    gen_header_bench!(c, bench_ipv4, Ipv4::default().to_bytes().unwrap(), Ipv4);
+    gen_header_bench!(c, bench_ipv6, Ipv6::default().to_bytes().unwrap(), Ipv6);
+    gen_header_bench!(c, bench_tcp, Tcp::default().to_bytes().unwrap(), Tcp);
 }
 
 criterion_group!(benches, criterion_benchmark);

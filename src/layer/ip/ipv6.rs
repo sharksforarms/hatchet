@@ -104,8 +104,8 @@ impl LayerExt for Ipv6 {
         Ok((rest, ipv6))
     }
 
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
-        Ok(self.to_bytes()?)
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(DekuContainerWrite::to_bytes(self)?)
     }
 }
 
@@ -148,7 +148,7 @@ mod tests {
                     unimplemented!()
                 }
 
-                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                     Ok([0u8; $size].to_vec())
                 }
             }

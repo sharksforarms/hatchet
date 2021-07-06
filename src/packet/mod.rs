@@ -66,7 +66,6 @@ impl Packet {
     }
 
     /// Packet to bytes
-    // TODO: Rename to_vec?
     pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
         Ok(crate::layer::utils::data_of_layers(&self.layers)?)
     }
@@ -138,7 +137,7 @@ impl PacketBuilder {
     #         Ok((input, Ether { ether_type: EtherType::Ipv4 }))
     #     }
     #
-    #     fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+    #     fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
     #         unimplemented!()
     #     }
     # }
@@ -155,7 +154,7 @@ impl PacketBuilder {
     #         Ok((input, Ipv4 {}))
     #     }
     #
-    #     fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+    #     fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
     #         unimplemented!()
     #     }
     # }
@@ -306,7 +305,7 @@ mod tests {
                     Ok((input, Self {}))
                 }
 
-                fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+                fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                     todo!()
                 }
             }
@@ -388,7 +387,7 @@ mod tests {
                 unimplemented!()
             }
 
-            fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
+            fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
                 unimplemented!()
             }
         }

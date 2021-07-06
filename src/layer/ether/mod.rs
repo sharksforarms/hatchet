@@ -67,8 +67,8 @@ impl LayerExt for Ether {
         Ok((rest, ether))
     }
 
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
-        Ok(self.to_bytes()?)
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(DekuContainerWrite::to_bytes(self)?)
     }
 }
 
@@ -90,7 +90,7 @@ mod tests {
         let ret_read = Ether::try_from(input).unwrap();
         assert_eq!(expected, ret_read);
 
-        let ret_write = ret_read.to_bytes().unwrap();
+        let ret_write = LayerExt::to_bytes(&ret_read).unwrap();
         assert_eq!(input.to_vec(), ret_write);
     }
 

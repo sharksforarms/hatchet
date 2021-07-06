@@ -53,8 +53,8 @@ impl LayerExt for Raw {
         Ok((rest, raw))
     }
 
-    fn to_vec(&self) -> Result<Vec<u8>, LayerError> {
-        Ok(self.to_bytes()?)
+    fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
+        Ok(DekuContainerWrite::to_bytes(self)?)
     }
 }
 
@@ -69,7 +69,7 @@ mod tests {
             data: input.to_vec(),
             bit_offset: 0xFF,
         };
-        let ret_write = layer.to_bytes().unwrap();
+        let ret_write = LayerExt::to_bytes(&layer).unwrap();
         assert_eq!(input.to_vec(), ret_write);
     }
 
