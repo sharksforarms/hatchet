@@ -19,7 +19,7 @@ macro_rules! gen_header_bench {
 
         $crit.bench_function(concat!(stringify!($name), "_to_bytes"), |b| {
             let (_rest, layer) = $layer::parse(&$data.clone()).unwrap();
-            b.iter(|| layer.to_vec().expect("expected Ok"))
+            b.iter(|| layer.to_bytes().expect("expected Ok"))
         });
     };
 }
