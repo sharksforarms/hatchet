@@ -4,6 +4,7 @@ use crate::{
         ip::{IpProtocol, Ipv4, Ipv6},
         raw::Raw,
         tcp::Tcp,
+        udp::Udp,
         LayerExt,
     },
     packet::PacketBuilder,
@@ -31,6 +32,7 @@ pub(crate) fn create_packetbuilder() -> PacketBuilder {
     });
 
     pb.bind_layer(|_tcp: &Tcp, _rest| Some(Raw::parse_layer));
+    pb.bind_layer(|_udp: &Udp, _rest| Some(Raw::parse_layer));
 
     pb
 }

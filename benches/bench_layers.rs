@@ -8,6 +8,7 @@ use hachet::layer::ether::Ether;
 use hachet::layer::ip::{Ipv4, Ipv6};
 use hachet::layer::raw::Raw;
 use hachet::layer::tcp::Tcp;
+use hachet::layer::udp::Udp;
 use hachet::layer::LayerExt;
 
 macro_rules! gen_header_bench {
@@ -25,12 +26,12 @@ macro_rules! gen_header_bench {
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    // # LAYER: Benchmarks
     gen_header_bench!(c, bench_raw, Raw::default().to_bytes().unwrap(), Raw);
     gen_header_bench!(c, bench_ether, Ether::default().to_bytes().unwrap(), Ether);
     gen_header_bench!(c, bench_ipv4, Ipv4::default().to_bytes().unwrap(), Ipv4);
     gen_header_bench!(c, bench_ipv6, Ipv6::default().to_bytes().unwrap(), Ipv6);
     gen_header_bench!(c, bench_tcp, Tcp::default().to_bytes().unwrap(), Tcp);
+    gen_header_bench!(c, bench_udp, Udp::default().to_bytes().unwrap(), Udp);
 }
 
 criterion_group!(benches, criterion_benchmark);
