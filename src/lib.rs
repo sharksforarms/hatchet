@@ -18,4 +18,5 @@ extern crate std;
 pub mod layer;
 pub mod packet;
 
+#[cfg(feature = "std")]
 pub mod datalink;
