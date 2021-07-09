@@ -309,12 +309,14 @@ impl<T: PacketRead> Iterator for InterfaceReader<T> {
 mod tests {
     use super::*;
 
+    #[allow(dead_code)]
     struct DummyInterface {
         reader: DummyReader,
         writer: DummyWriter,
     }
 
     #[derive(Default)]
+    #[allow(dead_code)]
     struct DummyReader {
         packet_builder: PacketBuilder,
     }
