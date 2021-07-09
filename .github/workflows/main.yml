@@ -13,10 +13,12 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Install libpcap
+        run: sudo apt-get -y install libpcap-dev
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all
+          args: --all --features pcap
 
   test:
     name: Test Suite
@@ -28,10 +30,12 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Install libpcap
+        run: sudo apt-get -y install libpcap-dev
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all
+          args: --all --features pcap
 
   test_miri:
     name: Miri Test
@@ -43,7 +47,9 @@ jobs:
           toolchain: nightly
           override: true
           components: miri
-      - run: cargo miri test
+      - name: Install libpcap
+        run: sudo apt-get -y install libpcap-dev
+      - run: cargo miri test --features pcap
 
   test_miri_big_endian:
     name: Miri Test Big Endian
@@ -56,7 +62,9 @@ jobs:
           override: true
           components: miri
           target: mips64-unknown-linux-gnuabi64
-      - run: cargo miri test --target mips64-unknown-linux-gnuabi64
+      - name: Install libpcap
+        run: sudo apt-get -y install libpcap-dev
+      - run: cargo miri test --target mips64-unknown-linux-gnuabi64 --features pcap
 
   fmt:
     name: Rustfmt
@@ -84,11 +92,13 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Install libpcap
+        run: sudo apt-get -y install libpcap-dev
       - run: rustup component add clippy
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --features pcap -- -D warnings
 
   ensure_no_std:
     name: Ensure no_std
@@ -124,6 +134,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Install libpcap
+        run: apt-get update && apt-get -y install libpcap-dev
 
       - name: Generate code coverage
         run: |
