@@ -304,3 +304,162 @@ impl<T: PacketRead> Iterator for InterfaceReader<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyInterface {
+        reader: DummyReader,
+        writer: DummyWriter,
+    }
+
+    #[derive(Default)]
+    struct DummyReader {
+        packet_builder: PacketBuilder,
+    }
+
+    #[derive(Debug, Default)]
+    struct DummyWriter {
+        write_count: usize,
+    }
+
+    impl PacketInterface for DummyInterface {
+        type Reader = DummyReader;
+        type Writer = DummyWriter;
+
+        fn init(name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
+        where
+            Self: Sized,
+        {
+            <Self as PacketInterface>::init_with_builder(name, PacketBuilder::new())
+        }
+
+        fn init_with_builder(
+            _name: &str,
+            packet_builder: PacketBuilder,
+        ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
+        where
+            Self: Sized,
+        {
+            Ok(Interface {
+                reader: DummyReader { packet_builder },
+                writer: DummyWriter { write_count: 0 },
+            })
+        }
+    }
+
+    impl PacketInterfaceRead for DummyInterface {
+        type Reader = DummyReader;
+
+        fn init(name: &str) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
+        where
+            Self: Sized,
+        {
+            <Self as PacketInterfaceRead>::init_with_builder(name, PacketBuilder::new())
+        }
+
+        fn init_with_builder(
+            name: &str,
+            packet_builder: PacketBuilder,
+        ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
+        where
+            Self: Sized,
+        {
+            let (reader, _writer) =
+                <DummyInterface as PacketInterface>::init_with_builder(name, packet_builder)?
+                    .into_split();
+            Ok(reader)
+        }
+    }
+
+    impl PacketInterfaceWrite for DummyInterface {
+        type Writer = DummyWriter;
+
+        fn init(name: &str) -> Result<InterfaceWriter<Self::Writer>, DataLinkError>
+        where
+            Self: Sized,
+        {
+            let (_reader, writer) = <DummyInterface as PacketInterface>::init(name)?.into_split();
+            Ok(writer)
+        }
+    }
+
+    impl PacketRead for DummyReader {
+        fn read(&mut self) -> Result<Packet, DataLinkError> {
+            Ok(Packet::new())
+        }
+    }
+
+    impl PacketWrite for DummyWriter {
+        fn write(&mut self, _packet: Packet) -> Result<(), DataLinkError> {
+            self.write_count += 1;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_interface_default() {
+        let mut interface = Interface::init::<DummyInterface>("test").unwrap();
+        let pkt = interface.read().unwrap();
+        interface.write(pkt).unwrap();
+
+        assert_eq!(1, interface.writer.write_count);
+    }
+
+    #[test]
+    fn test_interface_reader() {
+        let mut interface = InterfaceReader::init::<DummyInterface>("test").unwrap();
+        let _pkt = interface.read().unwrap();
+    }
+
+    #[test]
+    fn test_interface_writer() {
+        let mut interface = InterfaceWriter::init::<DummyInterface>("test").unwrap();
+        let pkt = Packet::new();
+        interface.write(pkt).unwrap();
+
+        assert_eq!(1, interface.writer.write_count);
+    }
+
+    #[test]
+    fn test_interface_split_ref() {
+        let mut interface = Interface::init::<DummyInterface>("test").unwrap();
+        let (mut reader, mut writer) = interface.split();
+
+        let pkt = reader.read().unwrap();
+        writer.write(pkt).unwrap();
+
+        assert_eq!(1, writer.writer.write_count);
+    }
+
+    #[test]
+    fn test_interface_split_owned() {
+        let interface = Interface::init::<DummyInterface>("test").unwrap();
+        let (mut reader, mut writer) = interface.into_split();
+
+        let pkt = reader.read().unwrap();
+        writer.write(pkt).unwrap();
+
+        assert_eq!(1, writer.writer.write_count);
+    }
+
+    #[test]
+    fn test_interface_iter() {
+        let mut interface = Interface::init::<DummyInterface>("test").unwrap();
+        assert!(interface.next().is_some());
+    }
+
+    #[test]
+    fn test_interface_reader_iter() {
+        let mut interface = InterfaceReader::init::<DummyInterface>("test").unwrap();
+        assert!(interface.next().is_some());
+    }
+
+    #[test]
+    fn test_interface_reader_ref_iter() {
+        let mut interface = Interface::init::<DummyInterface>("test").unwrap();
+        let (mut reader, _writer) = interface.split();
+        assert!(reader.next().is_some());
+    }
+}

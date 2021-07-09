@@ -35,6 +35,11 @@ pub struct Packet {
 }
 
 impl Packet {
+    /// Create an empty packet
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Construct a Packet given existing layers
     pub fn from_layers(layers: Vec<LayerOwned>) -> Self {
         Self { layers }
@@ -68,6 +73,12 @@ impl Packet {
     /// Packet to bytes
     pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
         Ok(crate::layer::utils::data_of_layers(&self.layers)?)
+    }
+}
+
+impl Default for Packet {
+    fn default() -> Self {
+        Self { layers: Vec::new() }
     }
 }
 
