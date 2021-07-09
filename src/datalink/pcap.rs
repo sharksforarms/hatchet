@@ -52,8 +52,7 @@ impl PacketInterface for Pcap {
         let interfaces = datalink::interfaces();
         let interface = interfaces
             .into_iter()
-            .filter(interface_names_match)
-            .next()
+            .find(interface_names_match)
             .ok_or(DataLinkError::InterfaceNotFound)?;
 
         let (tx, rx) = match datalink::channel(&interface, Default::default()) {
