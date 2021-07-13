@@ -4,7 +4,7 @@ use hachet::layer::ip::Ipv4;
 use hachet::layer::tcp::Tcp;
 use hachet::layer::LayerError;
 use hachet::layer::{Layer, LayerExt, LayerOwned};
-use hachet::packet::PacketBuilder;
+use hachet::packet::PacketParser;
 use hexlit::hex;
 
 #[derive(Debug, Default)]
@@ -40,7 +40,7 @@ impl LayerExt for Http {
 }
 
 fn main() {
-    let mut pb = PacketBuilder::new();
+    let mut pb = PacketParser::new();
     pb.bind_layer(|_from: &Ether, _rest| Some(Ipv4::parse_layer));
     pb.bind_layer(|_from: &Ipv4, _rest| Some(Tcp::parse_layer));
 

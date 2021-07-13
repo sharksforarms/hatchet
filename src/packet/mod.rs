@@ -99,25 +99,25 @@ given the current parsed layer and remaining data.
 Bindings are executed in reverse order. This allows clients to push new bindings to extend
 existing behaviour.
 */
-pub struct PacketBuilder {
+pub struct PacketParser {
     layer_bindings: HashMap<TypeId, Vec<LayerBinding>>,
 }
 
-impl PacketBuilder {
-    /// Create a packet builder with default bindings.
+impl PacketParser {
+    /// Create a packet parser with default bindings.
     pub fn new() -> Self {
-        PacketBuilder::default()
+        PacketParser::default()
     }
 
-    /// Create a packet builder without any default bindings
+    /// Create a packet parser without any default bindings
     pub fn without_bindings() -> Self {
-        PacketBuilder {
+        PacketParser {
             layer_bindings: HashMap::new(),
         }
     }
 
     /**
-    Add a layer binding to the packet builder
+    Add a layer binding to the packet parser
 
     This allows the definition of custom logic to help the parser determine the
     next layer.
@@ -127,7 +127,7 @@ impl PacketBuilder {
     ```rust
     # use hachet::{
     #   is_layer, get_layer,
-    #   packet::PacketBuilder,
+    #   packet::PacketParser,
     #   layer::{Layer, LayerExt, LayerOwned, LayerError}
     # };
     # #[derive(Debug, PartialEq)]
@@ -175,9 +175,9 @@ impl PacketBuilder {
     # #[derive(Debug)]
     # struct Ipv4 {}
     # fn main() {
-        let mut packet_builder = PacketBuilder::without_bindings();
+        let mut packet_parser = PacketParser::without_bindings();
 
-        packet_builder.bind_layer(|ether: &Ether, _rest| {
+        packet_parser.bind_layer(|ether: &Ether, _rest| {
             match ether.ether_type {
                 EtherType::Ipv4 => Some(Ipv4::parse_layer),
                 // ...
@@ -186,7 +186,7 @@ impl PacketBuilder {
         });
 
     #   let input = b"input";
-        let (rest, packet) = packet_builder.parse_packet::<Ether>(input).unwrap();
+        let (rest, packet) = packet_parser.parse_packet::<Ether>(input).unwrap();
 
         let layers = packet.layers();
         assert_eq!(2, layers.len());
@@ -230,11 +230,11 @@ impl PacketBuilder {
 
         // Given the currently parsed layer:
         //  - Lookup the layer bindings for the current layer
-        //  - Find the next layer builder by executing the bindings
+        //  - Find the next layer parser by executing the bindings
         //      - bindings are executed in reverse sequence
-        //      - if a binding returns a builder, it returns with that builder.
+        //      - if a binding returns a parser, it returns with that parser.
         //        (this is to allow users to override some behaviour)
-        //  - Parse the next layer with the builder
+        //  - Parse the next layer with the parser
         //  - Next layer becomes current layer, loop
         loop {
             if rest.is_empty() {
@@ -244,17 +244,17 @@ impl PacketBuilder {
             let tid = current_layer.as_any().type_id();
             let callbacks = self.layer_bindings.get(&tid);
 
-            // Using the layer bindings, find the builder for the next layer
-            let next_layer_builder = if let Some(callbacks) = callbacks {
+            // Using the layer bindings, find the parser for the next layer
+            let next_layer_parser = if let Some(callbacks) = callbacks {
                 // labelled loop used here to break out early from for loop
                 #[allow(clippy::never_loop)]
                 'lbl: loop {
                     // start from last inserted
                     for cb in callbacks.iter().rev() {
-                        let builder = cb(current_layer.as_ref(), rest);
+                        let parser = cb(current_layer.as_ref(), rest);
 
-                        if builder.is_some() {
-                            break 'lbl builder;
+                        if parser.is_some() {
+                            break 'lbl parser;
                         }
                     }
 
@@ -265,8 +265,8 @@ impl PacketBuilder {
             };
 
             // Next layer becomes the current layer
-            if let Some(next_layer_builder) = next_layer_builder {
-                let (new_rest, next_layer) = next_layer_builder(rest)?;
+            if let Some(next_layer_parser) = next_layer_parser {
+                let (new_rest, next_layer) = next_layer_parser(rest)?;
                 rest = new_rest;
 
                 layers.push(current_layer);
@@ -282,9 +282,9 @@ impl PacketBuilder {
     }
 }
 
-impl Default for PacketBuilder {
+impl Default for PacketParser {
     fn default() -> Self {
-        bindings::create_packetbuilder()
+        bindings::create_packetparser()
     }
 }
 
@@ -432,8 +432,8 @@ mod tests {
     }
 
     #[test]
-    fn test_packet_builder_bind_layer() {
-        let mut pb = PacketBuilder::without_bindings();
+    fn test_packet_parser_bind_layer() {
+        let mut pb = PacketParser::without_bindings();
         assert_eq!(0, pb.layer_bindings.len());
 
         pb.bind_layer(|_from: &Layer0, _rest| Some(Layer1::parse_layer));
@@ -458,8 +458,8 @@ mod tests {
     }
 
     #[test]
-    fn test_packet_builder_bind_layer_rest() {
-        let mut pb = PacketBuilder::without_bindings();
+    fn test_packet_parser_bind_layer_rest() {
+        let mut pb = PacketParser::without_bindings();
         assert_eq!(0, pb.layer_bindings.len());
 
         pb.bind_layer(|_from: &Layer0, rest| {
@@ -473,8 +473,8 @@ mod tests {
     }
 
     #[test]
-    fn test_packet_builder_none() {
-        let mut pb = PacketBuilder::without_bindings();
+    fn test_packet_parser_none() {
+        let mut pb = PacketParser::without_bindings();
         assert_eq!(0, pb.layer_bindings.len());
 
         {
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn test_packet_parse_packet_binding_order() {
-        let mut pb = PacketBuilder::without_bindings();
+        let mut pb = PacketParser::without_bindings();
         assert_eq!(0, pb.layer_bindings.len());
 
         {

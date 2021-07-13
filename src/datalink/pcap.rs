@@ -11,7 +11,7 @@ use crate::{
         Interface, InterfaceReader, InterfaceWriter, PacketInterfaceRead, PacketInterfaceWrite,
     },
     layer::ether::Ether,
-    packet::{Packet, PacketBuilder},
+    packet::{Packet, PacketParser},
 };
 
 /// LibPcap network interface
@@ -22,7 +22,7 @@ pub struct Pcap {
 
 /// LibPcap reader
 pub struct PcapReader {
-    packet_builder: PacketBuilder,
+    packet_parser: PacketParser,
     reader: Box<dyn DataLinkReceiver + 'static>,
 }
 
@@ -36,12 +36,12 @@ impl PacketInterface for Pcap {
     type Writer = PcapWriter;
 
     fn init(interface_name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
-        <Self as PacketInterface>::init_with_builder(interface_name, PacketBuilder::new())
+        <Self as PacketInterface>::init_with_parser(interface_name, PacketParser::new())
     }
 
-    fn init_with_builder(
+    fn init_with_parser(
         interface_name: &str,
-        packet_builder: crate::packet::PacketBuilder,
+        packet_parser: crate::packet::PacketParser,
     ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized,
@@ -63,7 +63,7 @@ impl PacketInterface for Pcap {
 
         Ok(Interface {
             reader: PcapReader {
-                packet_builder,
+                packet_parser,
                 reader: rx,
             },
             writer: PcapWriter { writer: tx },
@@ -78,18 +78,18 @@ impl PacketInterfaceRead for Pcap {
     where
         Self: Sized,
     {
-        <Self as PacketInterfaceRead>::init_with_builder(name, PacketBuilder::new())
+        <Self as PacketInterfaceRead>::init_with_parser(name, PacketParser::new())
     }
 
-    fn init_with_builder(
+    fn init_with_parser(
         name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized,
     {
         let (reader, _writer) =
-            <Pcap as PacketInterface>::init_with_builder(name, packet_builder)?.into_split();
+            <Pcap as PacketInterface>::init_with_parser(name, packet_parser)?.into_split();
 
         Ok(reader)
     }
@@ -117,7 +117,7 @@ impl PacketRead for PcapReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         match self.reader.next() {
             Ok(packet_bytes) => {
-                let (_rest, packet) = self.packet_builder.parse_packet::<Ether>(packet_bytes)?;
+                let (_rest, packet) = self.packet_parser.parse_packet::<Ether>(packet_bytes)?;
                 // TODO: log warning of un-read data?
                 Ok(packet)
             }

@@ -43,7 +43,7 @@ pub mod pnet;
 pub mod error;
 
 use crate::datalink::error::DataLinkError;
-use crate::packet::{Packet, PacketBuilder};
+use crate::packet::{Packet, PacketParser};
 
 /// A generic Packet interface used to Read and Write packets
 pub struct Interface<R: PacketRead, W: PacketWrite> {
@@ -62,15 +62,15 @@ impl<R: PacketRead, W: PacketWrite> Interface<R, W> {
         T::init(name)
     }
 
-    /// Initialize read/write interface with a custom builder
-    pub fn init_with_builder<T: PacketInterface>(
+    /// Initialize read/write interface with a custom parser
+    pub fn init_with_parser<T: PacketInterface>(
         name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<Interface<T::Reader, T::Writer>, DataLinkError>
     where
         Self: Sized,
     {
-        T::init_with_builder(name, packet_builder)
+        T::init_with_parser(name, packet_parser)
     }
 
     /// Split interface into referenced read and write interfaces
@@ -124,12 +124,12 @@ pub trait PacketInterface {
     where
         Self: Sized;
 
-    /// Initialization of an interface with a packet builder
+    /// Initialization of an interface with a packet parser
     ///
     /// `name` could be a network interface, device id, pcap filename, etc.
-    fn init_with_builder(
+    fn init_with_parser(
         name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
     where
         Self: Sized;
@@ -147,12 +147,12 @@ pub trait PacketInterfaceRead {
     where
         Self: Sized;
 
-    /// Initialization of an interface with a packet builder
+    /// Initialization of an interface with a packet parser
     ///
     /// `name` could be a network interface, device id, pcap filename, etc.
-    fn init_with_builder(
+    fn init_with_parser(
         name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
     where
         Self: Sized;
@@ -236,15 +236,15 @@ where
         T::init(name)
     }
 
-    /// Initialize read-only interface with custom builder
-    pub fn init_with_builder<T: PacketInterfaceRead<Reader = R>>(
+    /// Initialize read-only interface with custom parser
+    pub fn init_with_parser<T: PacketInterfaceRead<Reader = R>>(
         name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<InterfaceReader<T::Reader>, DataLinkError>
     where
         Self: Sized,
     {
-        T::init_with_builder(name, packet_builder)
+        T::init_with_parser(name, packet_parser)
     }
 }
 
@@ -347,7 +347,7 @@ mod tests {
     #[derive(Default)]
     #[allow(dead_code)]
     struct DummyReader {
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     }
 
     #[derive(Debug, Default)]
@@ -363,18 +363,18 @@ mod tests {
         where
             Self: Sized,
         {
-            <Self as PacketInterface>::init_with_builder(name, PacketBuilder::new())
+            <Self as PacketInterface>::init_with_parser(name, PacketParser::new())
         }
 
-        fn init_with_builder(
+        fn init_with_parser(
             _name: &str,
-            packet_builder: PacketBuilder,
+            packet_parser: PacketParser,
         ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError>
         where
             Self: Sized,
         {
             Ok(Interface {
-                reader: DummyReader { packet_builder },
+                reader: DummyReader { packet_parser },
                 writer: DummyWriter { write_count: 0 },
             })
         }
@@ -387,18 +387,18 @@ mod tests {
         where
             Self: Sized,
         {
-            <Self as PacketInterfaceRead>::init_with_builder(name, PacketBuilder::new())
+            <Self as PacketInterfaceRead>::init_with_parser(name, PacketParser::new())
         }
 
-        fn init_with_builder(
+        fn init_with_parser(
             name: &str,
-            packet_builder: PacketBuilder,
+            packet_parser: PacketParser,
         ) -> Result<InterfaceReader<Self::Reader>, DataLinkError>
         where
             Self: Sized,
         {
             let (reader, _writer) =
-                <DummyInterface as PacketInterface>::init_with_builder(name, packet_builder)?
+                <DummyInterface as PacketInterface>::init_with_parser(name, packet_parser)?
                     .into_split();
             Ok(reader)
         }

@@ -7,7 +7,7 @@ use super::{DataLinkError, PacketInterface, PacketRead, PacketWrite};
 use crate::{
     datalink::Interface,
     layer::ether::Ether,
-    packet::{Packet, PacketBuilder},
+    packet::{Packet, PacketParser},
 };
 use alloc::boxed::Box;
 
@@ -19,7 +19,7 @@ pub struct Pnet {
 
 /// Pnet reader
 pub struct PnetReader {
-    packet_builder: PacketBuilder,
+    packet_parser: PacketParser,
     reader: Box<dyn DataLinkReceiver + 'static>,
 }
 
@@ -33,12 +33,12 @@ impl PacketInterface for Pnet {
     type Writer = PnetWriter;
 
     fn init(interface_name: &str) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
-        Self::init_with_builder(interface_name, PacketBuilder::new())
+        Self::init_with_parser(interface_name, PacketParser::new())
     }
 
-    fn init_with_builder(
+    fn init_with_parser(
         interface_name: &str,
-        packet_builder: PacketBuilder,
+        packet_parser: PacketParser,
     ) -> Result<Interface<Self::Reader, Self::Writer>, DataLinkError> {
         let interface_names_match = |iface: &NetworkInterface| iface.name == interface_name;
 
@@ -57,7 +57,7 @@ impl PacketInterface for Pnet {
 
         Ok(Interface {
             reader: PnetReader {
-                packet_builder,
+                packet_parser,
                 reader: rx,
             },
             writer: PnetWriter { writer: tx },
@@ -75,7 +75,7 @@ impl PacketRead for PnetReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         match self.reader.next() {
             Ok(packet_bytes) => {
-                let (_rest, packet) = self.packet_builder.parse_packet::<Ether>(packet_bytes)?;
+                let (_rest, packet) = self.packet_parser.parse_packet::<Ether>(packet_bytes)?;
                 // TODO: log warning of un-read data?
                 Ok(packet)
             }

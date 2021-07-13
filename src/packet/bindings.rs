@@ -1,7 +1,7 @@
 /*!
 (Doc only) Default layer bindings
 
-Documentation only module, listing the default layer bindings for [PacketBuilder](crate::packet::PacketBuilder).
+Documentation only module, listing the default layer bindings for [PacketParser](crate::packet::PacketParser).
 
 # Layer Bindings
 
@@ -29,13 +29,13 @@ use crate::{
         udp::Udp,
         LayerExt,
     },
-    packet::PacketBuilder,
+    packet::PacketParser,
 };
 
-/// Create a [PacketBuilder](crate::packet::PacketBuilder) with a set of bindings using layers
+/// Create a [PacketParser](crate::packet::PacketParser) with a set of bindings using layers
 /// defined in the crate
-pub(crate) fn create_packetbuilder() -> PacketBuilder {
-    let mut pb = PacketBuilder::without_bindings();
+pub(crate) fn create_packetparser() -> PacketParser {
+    let mut pb = PacketParser::without_bindings();
 
     pb.bind_layer(|ether: &Ether, _rest| match ether.ether_type {
         EtherType::IPv4 => Some(Ipv4::parse_layer),
