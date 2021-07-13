@@ -5,6 +5,7 @@ use crate::packet::PacketError;
 
 /// Data link errors
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum DataLinkError {
     /// Error during packet reading or writing
     PacketError(PacketError),

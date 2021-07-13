@@ -12,6 +12,7 @@ use deku::prelude::*;
     ctx_default = "deku::ctx::Endian::Big",
     endian = "endian"
 )]
+#[non_exhaustive]
 pub enum EtherType {
     /// IEEE 802.3 packet
     #[deku(id = "0x0004")]

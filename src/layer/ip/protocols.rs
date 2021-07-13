@@ -13,6 +13,7 @@ use deku::prelude::*;
     ctx_default = "deku::ctx::Endian::Big",
     endian = "endian"
 )]
+#[non_exhaustive]
 pub enum IpProtocol {
     /// IPv6 Hop-by-Hop Option [RFC1883](https://datatracker.ietf.org/doc/html/rfc1883)
     #[deku(id = "0")]
