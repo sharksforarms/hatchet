@@ -1,5 +1,34 @@
 /*!
-Module to send and receive packets over an interface
+Read and Write packets over an interface
+
+# Interface Types
+
+Some interface types are enabled via crate features.
+
+| Type | Feature | Description
+|-----------|------------------|------------
+| [Pnet] | default | Use [libpnet] cross-platform abstraction over a network interface
+| [Pnet] | netmap | Enable [netmap] feature in libpnet to utilize netmap for I/O
+| [Pcap] | pcap | Use libpcap for I/O on a network interface
+| [PcapFile] | pcap | Use libpcap for I/O on pcap files
+
+[Pnet]: crate::datalink::pnet::Pnet
+[Pcap]: crate::datalink::pcap::Pcap
+[PcapFile]: crate::datalink::pcapfile::PcapFile
+[libpnet]: https://github.com/libpnet/libpnet
+[netmap]: http://info.iet.unipi.it/~luigi/netmap/
+
+# Example
+
+```rust,ignore
+let interface = Interface::init::<Pnet>("lo").unwrap();
+
+let (mut rx, mut tx) = int.into_split();
+
+for (_i, pkt) in (&mut rx).enumerate() {
+println!("Packet: {:?}", pkt);
+}
+```
 */
 
 #[cfg(feature = "pcap")]

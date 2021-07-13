@@ -1,14 +1,18 @@
 /*!
 Layer parsing and construction
 
-A layer is represented by the [Layer](self::Layer) and [LayerExt](self::LayerExt)
-traits.
+A layer is a slice of a packet, the protocol definition.
+
+A layer is represented by the marker trait [Layer](self::Layer) and [LayerExt](self::LayerExt), the implementation trait.
+
+Internally, hachet uses [deku](https://github.com/sharksforarms/deku) to easily handle the
+symmetric serialization and deserialization of layers.
 */
 use alloc::{boxed::Box, vec::Vec};
 use core::any::Any;
 
 pub mod error;
-pub(crate) mod utils;
+pub mod utils;
 pub use error::LayerError;
 
 pub mod ether;
@@ -23,7 +27,7 @@ pub trait AsAny {
 }
 
 // AsAny trait implemented on all layers
-// to be able to dynamicaly retrieve original type
+// to be able to dynamically retrieve original type
 impl<T: Any + Layer> AsAny for T {
     fn as_any(&self) -> &dyn Any {
         self
@@ -35,11 +39,14 @@ impl<T: Any + Layer> AsAny for T {
 /// Any is used in order to retrieve the original layer type, see [get_layer!](crate::get_layer) macro
 pub trait Layer: AsAny {}
 
-/// Extension of a layer to allow parsing and construction of a layer
+/// Extension of a layer to allow parsing and construction
 pub trait LayerExt: core::fmt::Debug + Layer {
-    /// Finalize a layer in relation to previous and next layers
+    /// Finalize a layer
     ///
-    /// This should be used to update inter-dependant fields such as
+    /// Previous and next layers are passed as arguments to update fields in relation to previous
+    /// and next layers.
+    ///
+    /// This can be used to update inter-dependant fields such as
     /// checksums, lengths, etc.
     fn finalize(&mut self, prev: &[LayerOwned], next: &[LayerOwned]) -> Result<(), LayerError>;
 
@@ -60,10 +67,15 @@ pub trait LayerExt: core::fmt::Debug + Layer {
         Self::parse(input).map(|(rest, layer)| (rest, Box::new(layer) as Box<dyn LayerExt>))
     }
 
-    /// Layer to bytes
+    /// Serialize the layer to bytes
     fn to_bytes(&self) -> Result<Vec<u8>, LayerError>;
 
-    /// Return length of layer
+    /// Return's serialized length in bytes of the layer
+    ///
+    /// This method calls `to_bytes` and returns the length.
+    ///
+    /// Implement this method if there's a more efficient way of
+    /// retrieving the serialized length (for example if it's a static length)
     fn length(&self) -> Result<usize, LayerError> {
         Ok(self.to_bytes()?.len())
     }
@@ -78,7 +90,7 @@ pub type LayerOwned = Box<dyn LayerExt>;
 /**
 Retrieve original type from a layer
 
-Example
+# Example
 
 ```rust
 # use hachet::layer::Layer;
@@ -107,7 +119,7 @@ macro_rules! get_layer {
 /**
 Test if a layer is of a certain type
 
-Example
+# Example
 
 ```rust
 # use hachet::layer::Layer;

@@ -1,3 +1,6 @@
+/*!
+  Helper functions relating to layers
+*/
 use alloc::{string::ToString, vec::Vec};
 
 use crate::layer::{LayerError, LayerOwned};

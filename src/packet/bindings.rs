@@ -1,3 +1,25 @@
+/*!
+(Doc only) Default layer bindings
+
+Documentation only module, listing the default layer bindings for [PacketBuilder](crate::packet::PacketBuilder).
+
+# Layer Bindings
+
+| Layer | Condition | Next Layer
+|-----------|------------------|------------
+| [Ether] | type == Ipv4 | [Ipv4]
+| [Ether] | type == Ipv6 | [Ipv4]
+| [Ipv4] | protocol == Tcp | [Tcp]
+| [Ipv4] | protocol == Udp | [Udp]
+| [Ipv6] | protocol == Tcp | [Tcp]
+| [Ipv6] | protocol == Udp | [Udp]
+
+[Ether]: crate::layer::ether::Ether
+[Ipv4]: crate::layer::ip::Ipv4
+[Ipv6]: crate::layer::ip::Ipv6
+[Udp]: crate::layer::udp::Udp
+[Tcp]: crate::layer::tcp::Tcp
+*/
 use crate::{
     layer::{
         ether::{Ether, EtherType},

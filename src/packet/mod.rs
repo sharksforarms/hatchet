@@ -1,5 +1,5 @@
 /*!
-  Packet parsing and construction
+Packet parsing and construction.
 */
 
 use crate::{
@@ -10,7 +10,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::any::TypeId;
 use hashbrown::HashMap;
 
-mod bindings;
+pub mod bindings;
 
 pub mod error;
 pub use error::PacketError;
@@ -94,7 +94,10 @@ type LayerBinding = Box<
 Parse a [Packet](self::Packet) given layer binding rules
 
 A layer binding specifies which [Layer](crate::layer::Layer) to read next,
-given the current parsed layer.
+given the current parsed layer and remaining data.
+
+Bindings are executed in reverse order. This allows clients to push new bindings to extend
+existing behaviour.
 */
 pub struct PacketBuilder {
     layer_bindings: HashMap<TypeId, Vec<LayerBinding>>,
