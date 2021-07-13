@@ -45,11 +45,13 @@ pub(crate) fn create_packetbuilder() -> PacketBuilder {
 
     pb.bind_layer(|ipv4: &Ipv4, _rest| match ipv4.protocol {
         IpProtocol::TCP => Some(Tcp::parse_layer),
+        IpProtocol::UDP => Some(Udp::parse_layer),
         _ => Some(Raw::parse_layer),
     });
 
     pb.bind_layer(|ipv6: &Ipv6, _rest| match ipv6.next_header {
         IpProtocol::TCP => Some(Tcp::parse_layer),
+        IpProtocol::UDP => Some(Udp::parse_layer),
         _ => Some(Raw::parse_layer),
     });
 
