@@ -246,7 +246,7 @@ impl LayerExt for Tcp {
 
         // Update the tcp checksum
         if let Some(prev_layer) = prev.last() {
-            let tcp_payload = crate::layer::utils::data_of_layers(next)?;
+            let tcp_payload = crate::layer::utils::layers_to_bytes(next)?;
 
             // length of tcp header + tcp_payload
             let tcp_length = tcp_header_len

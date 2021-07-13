@@ -72,7 +72,7 @@ impl Packet {
 
     /// Packet to bytes
     pub fn to_bytes(&self) -> Result<Vec<u8>, PacketError> {
-        Ok(crate::layer::utils::data_of_layers(&self.layers)?)
+        Ok(crate::layer::utils::layers_to_bytes(&self.layers)?)
     }
 }
 

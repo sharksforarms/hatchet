@@ -16,7 +16,7 @@ pub fn length_of_layers(layers: &[LayerOwned]) -> Result<usize, LayerError> {
 }
 
 /// Returns the data of all layers
-pub fn data_of_layers(layers: &[LayerOwned]) -> Result<Vec<u8>, LayerError> {
+pub fn layers_to_bytes(layers: &[LayerOwned]) -> Result<Vec<u8>, LayerError> {
     layers.iter().try_fold(Vec::new(), |mut acc, layer| {
         let data = layer.to_bytes()?;
         acc.extend(data);
