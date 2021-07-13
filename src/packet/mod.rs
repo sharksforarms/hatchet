@@ -234,6 +234,10 @@ impl PacketBuilder {
         //  - Parse the next layer with the builder
         //  - Next layer becomes current layer, loop
         loop {
+            if rest.is_empty() {
+                break;
+            }
+
             let tid = current_layer.as_any().type_id();
             let callbacks = self.layer_bindings.get(&tid);
 
