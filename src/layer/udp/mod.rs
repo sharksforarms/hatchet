@@ -106,20 +106,23 @@ impl LayerExt for Udp {
         };
         let udp_header_len = udp_header.len();
 
+        let udp_payload = crate::layer::utils::layers_to_bytes(next)?;
+
+        // length of udp header + udp_payload
+        let udp_length = udp_header_len
+            .checked_add(udp_payload.len())
+            .ok_or_else(|| {
+                LayerError::Finalize(
+                    "Overflow occured when calculating length for udp (v4) checksum".to_string(),
+                )
+            })?;
+
+        self.length = u16::try_from(udp_length).map_err(|_e| {
+            LayerError::Finalize(format!("Invalid Udp length {} > {}", udp_length, u16::MAX))
+        })?;
+
         // Update the udp checksum
         if let Some(prev_layer) = prev.last() {
-            let udp_payload = crate::layer::utils::data_of_layers(next)?;
-
-            // length of udp header + udp_payload
-            let udp_length = udp_header_len
-                .checked_add(udp_payload.len())
-                .ok_or_else(|| {
-                    LayerError::Finalize(
-                        "Overflow occured when calculating length for udp (v4) checksum"
-                            .to_string(),
-                    )
-                })?;
-
             let ip_pseudo_header = if let Some(ipv4) = get_layer!(prev_layer, Ipv4) {
                 Some(
                     Ipv4PseudoHeader::new(
@@ -284,10 +287,27 @@ mod tests {
         assert_eq!(expected_checksum, udp.checksum);
     }
 
+    #[rstest(expected_length, layers,
+        case::none(8, &[]),
+        case::empty(8, &[Layer0::boxed()]),
+        case::empty(108, &[Layer100::boxed()]),
+        case::empty(208, &[Layer100::boxed(), Layer0::boxed(), Layer100::boxed()]),
+    )]
+    fn test_ipv4_finalize_length(expected_length: u16, layers: &[LayerOwned]) {
+        let mut udp = Udp::default();
+
+        // Finalize should update the length
+        udp.finalize(&[], layers).unwrap();
+        assert_ne!(0, udp.length);
+
+        assert_eq!(expected_length, udp.length);
+    }
+
     #[test]
     fn test_udp_finalize() {
         let mut udp = Udp::default();
         assert_eq!(0, udp.checksum);
+        assert_eq!(0, udp.length);
 
         let ipv4 = Box::new(Ipv4::default());
         udp.finalize(&[ipv4], &[Layer100::boxed()]).unwrap();
@@ -295,6 +315,7 @@ mod tests {
         // Only these fields should change during a finalize
         let expected_udp = Udp {
             checksum: 0x018B,
+            length: 108,
             ..Default::default()
         };
 
