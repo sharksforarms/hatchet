@@ -30,9 +30,13 @@ impl From<PacketError> for DataLinkError {
     }
 }
 
+#[cfg(feature = "std")]
 impl From<pcap_file::PcapError> for DataLinkError {
     fn from(e: pcap_file::PcapError) -> Self {
-        DataLinkError::PcapError(e.to_string())
+        match e {
+            pcap_file::PcapError::IoError(e) => DataLinkError::IoError(e),
+            _ => DataLinkError::PcapError(e.to_string()),
+        }
     }
 }
 
