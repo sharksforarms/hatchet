@@ -5,7 +5,9 @@ Note: Pcap writing currently not supported
 
 libpcap interface exposed via libpnet
 */
-use pnet::datalink::{self, Channel, DataLinkReceiver};
+use std::fs::File;
+
+use pcap_file::{pcap::PcapReader, PcapError};
 
 use super::{DataLinkError, PacketInterface, PacketRead};
 use crate::{
@@ -16,13 +18,13 @@ use crate::{
 
 /// Pcap file based interface
 pub struct PcapFile {
-    rx: PcapFileReader,
+    reader: PcapFileReader,
 }
 
 /// Pcap file reader
 pub struct PcapFileReader {
     packet_parser: PacketParser,
-    rx: Box<dyn DataLinkReceiver + 'static>,
+    reader: PcapReader<File>,
 }
 
 impl PacketInterface for PcapFile {
@@ -40,14 +42,14 @@ impl PacketInterface for PcapFile {
     where
         Self: Sized,
     {
-        let (_tx, rx) = match datalink::pcap::from_file(filename, Default::default()) {
-            Ok(Channel::Ethernet(tx, rx)) => Ok((tx, rx)),
-            Ok(_) => Err(DataLinkError::UnhandledInterfaceType),
-            Err(e) => Err(DataLinkError::IoError(e)),
-        }?;
+        let file_in = File::open(filename)?;
+        let reader = PcapReader::new(file_in)?;
 
         Ok(Interface {
-            reader: PcapFileReader { packet_parser, rx },
+            reader: PcapFileReader {
+                packet_parser,
+                reader,
+            },
             writer: UnimplementedWriter {},
         })
     }
@@ -79,19 +81,23 @@ impl PacketInterfaceRead for PcapFile {
 
 impl PacketRead for PcapFile {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        self.rx.read()
+        self.reader.read()
     }
 }
 
 impl PacketRead for PcapFileReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
-        match self.rx.next() {
-            Ok(packet_bytes) => {
-                let (_rest, packet) = self.packet_parser.parse_packet::<Ether>(packet_bytes)?;
+        match self.reader.next() {
+            Some(Ok(packet)) => {
+                let (_rest, packet) = self.packet_parser.parse_packet::<Ether>(&packet.data)?;
                 // TODO: log warning of un-read data?
                 Ok(packet)
             }
-            Err(e) => Err(DataLinkError::IoError(e)),
+            Some(Err(e)) => match e {
+                PcapError::IoError(e) => Err(DataLinkError::IoError(e)),
+                _ => Err(DataLinkError::PcapError(e.to_string())),
+            },
+            None => Err(DataLinkError::Eof),
         }
     }
 }

@@ -10,11 +10,9 @@ Some interface types are enabled via crate features.
 | [Pnet] | default | Use [libpnet] cross-platform abstraction over a network interface
 | [Pnet] | netmap | Enable [netmap] feature in libpnet to utilize netmap for I/O
 | [Pcap] | pcap | Use libpcap for I/O on a network interface
-| [PcapFile] | pcap | Use libpcap for I/O on pcap files
 
 [Pnet]: crate::datalink::pnet::Pnet
 [Pcap]: crate::datalink::pcap::Pcap
-[PcapFile]: crate::datalink::pcapfile::PcapFile
 [libpnet]: https://github.com/libpnet/libpnet
 [netmap]: http://info.iet.unipi.it/~luigi/netmap/
 
@@ -34,7 +32,7 @@ println!("Packet: {:?}", pkt);
 #[cfg(feature = "pcap")]
 pub mod pcap;
 
-#[cfg(feature = "pcap")]
+#[cfg(feature = "std")]
 pub mod pcapfile;
 
 #[cfg(feature = "pnet")]

@@ -23,6 +23,7 @@ pcap = ["pnet/pcap"]
 hashbrown = "0.11"
 deku = { version = "0.12", default-features = false, features = ["alloc"] }
 pnet = { version = "0.28", optional = true }
+pcap-file = "1.1.1"
 
 [dev-dependencies]
 rstest = "0.10.0"

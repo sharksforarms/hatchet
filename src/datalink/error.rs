@@ -17,11 +17,21 @@ pub enum DataLinkError {
     IoError(std::io::Error),
     /// Error writing to interface buffer
     BufferError,
+    /// Pcap file error
+    PcapError(String),
+    /// End of file
+    Eof,
 }
 
 impl From<PacketError> for DataLinkError {
     fn from(e: PacketError) -> Self {
         DataLinkError::PacketError(e)
+    }
+}
+
+impl From<pcap_file::PcapError> for DataLinkError {
+    fn from(e: pcap_file::PcapError) -> Self {
+        DataLinkError::PcapError(e.to_string())
     }
 }
 
