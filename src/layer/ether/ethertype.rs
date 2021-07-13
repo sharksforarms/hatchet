@@ -266,6 +266,9 @@ pub enum EtherType {
     /// Maximum valid ethernet type, reserved
     #[deku(id = "0xffff")]
     MAX,
+    /// Unknown ether type
+    #[deku(id_pat = "_")]
+    Unknown(u16),
 }
 
 impl Default for EtherType {

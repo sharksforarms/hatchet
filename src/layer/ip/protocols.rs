@@ -177,6 +177,9 @@ pub enum IpProtocol {
     /// Robust Header Compression
     #[deku(id = "142")]
     ROHC,
+    /// Unknown ip protocol
+    #[deku(id_pat = "_")]
+    Unknown(u8),
 }
 
 impl Default for IpProtocol {
