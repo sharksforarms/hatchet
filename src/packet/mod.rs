@@ -297,7 +297,7 @@ mod tests {
     };
 
     macro_rules! declare_test_layer {
-        ($name:ident) => {
+        ($name:ident, $bytes:tt) => {
             #[derive(Debug)]
             struct $name {}
             #[allow(dead_code)]
@@ -320,19 +320,21 @@ mod tests {
                 where
                     Self: Sized,
                 {
-                    Ok((input, Self {}))
+                    let (val, rest) = input.split_at($bytes.len());
+                    assert_eq!(val, $bytes);
+                    Ok((rest, Self {}))
                 }
 
                 fn to_bytes(&self) -> Result<Vec<u8>, LayerError> {
-                    todo!()
+                    Ok($bytes.to_vec())
                 }
             }
         };
     }
 
-    declare_test_layer!(Layer0);
-    declare_test_layer!(Layer1);
-    declare_test_layer!(Layer2);
+    declare_test_layer!(Layer0, b"layer0");
+    declare_test_layer!(Layer1, b"layer1");
+    declare_test_layer!(Layer2, b"layer2");
 
     #[test]
     fn test_packet_view_from_layers() {
@@ -350,8 +352,20 @@ mod tests {
         let layer1 = Box::new(Layer1::new());
 
         let layers: Vec<LayerOwned> = vec![layer0, layer1];
+        let mut packet = Packet::from_layers(layers);
+        assert_eq!(2, packet.layers().len());
+        assert_eq!(2, packet.layers_mut().len());
+    }
+
+    #[test]
+    fn test_packet_to_bytes() {
+        let layer0 = Box::new(Layer0::new());
+        let layer1 = Box::new(Layer1::new());
+        let layer2 = Box::new(Layer2::new());
+
+        let layers: Vec<LayerOwned> = vec![layer0, layer1, layer2];
         let packet = Packet::from_layers(layers);
-        assert_eq!(2, packet.layers.len());
+        assert_eq!(b"layer0layer1layer2".to_vec(), packet.to_bytes().unwrap());
     }
 
     #[test]
@@ -469,7 +483,7 @@ mod tests {
 
         assert_eq!(1, pb.layer_bindings.len());
 
-        pb.parse_packet::<Layer0>(b"testdata").unwrap();
+        pb.parse_packet::<Layer0>(b"layer0").unwrap();
     }
 
     #[test]
@@ -480,16 +494,18 @@ mod tests {
         {
             pb.bind_layer(|_from: &Layer0, _rest| None);
 
-            let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
+            let (rest, packet) = pb.parse_packet::<Layer0>(b"layer0").unwrap();
             assert_eq!(1, packet.layers.len());
+            assert!(rest.is_empty());
             assert!(get_layer!(packet.layers[0], Layer0).is_some());
         }
 
         {
             pb.bind_layer(|_from: &Layer0, _rest| Some(Layer1::parse_layer));
 
-            let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
+            let (rest, packet) = pb.parse_packet::<Layer0>(b"layer0layer1").unwrap();
             assert_eq!(2, packet.layers.len());
+            assert!(rest.is_empty());
             assert!(get_layer!(packet.layers[0], Layer0).is_some());
             assert!(get_layer!(packet.layers[1], Layer1).is_some());
         }
@@ -503,8 +519,9 @@ mod tests {
         {
             pb.bind_layer(|_from: &Layer0, _rest| Some(Layer1::parse_layer));
 
-            let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
+            let (rest, packet) = pb.parse_packet::<Layer0>(b"layer0layer1").unwrap();
             assert_eq!(2, packet.layers.len());
+            assert!(rest.is_empty());
             assert!(get_layer!(packet.layers[0], Layer0).is_some());
             assert!(get_layer!(packet.layers[1], Layer1).is_some());
         }
@@ -512,8 +529,9 @@ mod tests {
         {
             pb.bind_layer(|_from: &Layer0, _rest| Some(Layer2::parse_layer));
 
-            let (_rest, packet) = pb.parse_packet::<Layer0>(b"testdata").unwrap();
+            let (rest, packet) = pb.parse_packet::<Layer0>(b"layer0layer2").unwrap();
             assert_eq!(2, packet.layers.len());
+            assert!(rest.is_empty());
             assert!(get_layer!(packet.layers[0], Layer0).is_some());
             assert!(get_layer!(packet.layers[1], Layer2).is_some());
         }
