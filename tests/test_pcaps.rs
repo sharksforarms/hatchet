@@ -18,11 +18,12 @@ macro_rules! gen_pcap_rw_test {
             .unwrap();
 
             let mut count = 0;
-            for mut pkt in interface {
+            for pkt in interface {
                 $body(&pkt);
 
                 let bytes1 = pkt.to_bytes().unwrap();
-                pkt.finalize().unwrap();
+                let mut pkt2 = pkt.clone();
+                pkt2.finalize().unwrap();
                 let bytes2 = pkt.to_bytes().unwrap();
 
                 assert_eq!(bytes1, bytes2);

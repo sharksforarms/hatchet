@@ -328,7 +328,7 @@ mod tests {
 
     macro_rules! declare_test_layer {
         ($name:ident, $size:tt) => {
-            #[derive(Debug, Default)]
+            #[derive(Debug, Default, Clone)]
             struct $name {}
             #[allow(dead_code)]
             impl $name {

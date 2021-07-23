@@ -7,7 +7,7 @@ use hachet::layer::{Layer, LayerExt, LayerOwned};
 use hachet::packet::PacketParser;
 use hexlit::hex;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct Http {
     data: String,
 }

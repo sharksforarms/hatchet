@@ -29,7 +29,7 @@ impl<'a> PacketView<'a> {
 }
 
 /// A packet is simply a collection of [Layer](crate::layer::LayerExt)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Packet {
     layers: Vec<LayerOwned>,
 }
@@ -130,11 +130,11 @@ impl PacketParser {
     #   packet::PacketParser,
     #   layer::{Layer, LayerExt, LayerOwned, LayerError}
     # };
-    # #[derive(Debug, PartialEq)]
+    # #[derive(Debug, PartialEq, Clone)]
     # enum EtherType {
     #    Ipv4 = 0x0800
     # }
-    # #[derive(Debug)]
+    # #[derive(Debug, Clone)]
     # struct Ether {
     #    ether_type: EtherType
     # }
@@ -172,7 +172,7 @@ impl PacketParser {
     #         unimplemented!()
     #     }
     # }
-    # #[derive(Debug)]
+    # #[derive(Debug, Clone)]
     # struct Ipv4 {}
     # fn main() {
         let mut packet_parser = PacketParser::without_bindings();
@@ -298,7 +298,7 @@ mod tests {
 
     macro_rules! declare_test_layer {
         ($name:ident, $bytes:tt) => {
-            #[derive(Debug)]
+            #[derive(Debug, Clone)]
             struct $name {}
             #[allow(dead_code)]
             impl $name {

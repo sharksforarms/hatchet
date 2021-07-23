@@ -40,7 +40,7 @@ impl<T: Any + Layer> AsAny for T {
 pub trait Layer: AsAny {}
 
 /// Extension of a layer to allow parsing and construction
-pub trait LayerExt: core::fmt::Debug + Layer {
+pub trait LayerExt: core::fmt::Debug + Layer + LayerClone {
     /// Finalize a layer
     ///
     /// Previous and next layers are passed as arguments to update fields in relation to previous
@@ -86,6 +86,24 @@ pub type LayerRef<'a> = &'a dyn Layer;
 
 /// A boxed [LayerExt](self::LayerExt)
 pub type LayerOwned = Box<dyn LayerExt>;
+
+/// Trait used to make a LayerExt clone'able
+pub trait LayerClone {
+    /// Clone a layer
+    fn clone_box(&self) -> Box<dyn LayerExt>;
+}
+
+impl<T: 'static + LayerExt + Clone> LayerClone for T {
+    fn clone_box(&self) -> Box<dyn LayerExt> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn LayerExt> {
+    fn clone(&self) -> Box<dyn LayerExt> {
+        self.clone_box()
+    }
+}
 
 /**
 Retrieve original type from a layer
