@@ -10,8 +10,8 @@ use crate::{
         error::DataLinkError, InterfaceReader, InterfaceWriter, PacketInterfaceRead,
         PacketInterfaceWrite, PacketRead, PacketWrite,
     },
-    layer::ether::Ether,
-    packet::{Packet, PacketParser},
+    layer::{ether::Ether, raw::Raw},
+    packet::{Packet, PacketError, PacketParser},
 };
 use core::convert::TryFrom;
 use pcap_file::{pcap::PcapReader, PcapWriter};
@@ -20,10 +20,14 @@ use std::fs::File;
 /// Pcap file based interface
 pub struct PcapFile {}
 
+type PcapParserFn =
+    Box<dyn for<'a, 'b> Fn(&'a PacketParser, &'b [u8]) -> Result<(&'b [u8], Packet), PacketError>>;
+
 /// Pcap file reader
 pub struct PcapFileReader {
     packet_parser: PacketParser,
     reader: PcapReader<File>,
+    parser_fn: PcapParserFn,
 }
 
 /// Pcap file writer
@@ -51,10 +55,37 @@ impl PacketInterfaceRead for PcapFile {
         let file_in = File::open(filename)?;
         let reader = PcapReader::new(file_in)?;
 
+        // Initialize the parser based on the pcap header
+        let parser_fn = match reader.header.datalink {
+            pcap_file::DataLink::ETHERNET => {
+                let pfn: PcapParserFn = Box::new(
+                    |packet_parser: &PacketParser,
+                     i: &[u8]|
+                     -> Result<(&[u8], Packet), PacketError> {
+                        packet_parser.parse_packet::<Ether>(i)
+                    },
+                );
+
+                pfn
+            }
+            _ => {
+                let pfn: PcapParserFn = Box::new(
+                    |packet_parser: &PacketParser,
+                     i: &[u8]|
+                     -> Result<(&[u8], Packet), PacketError> {
+                        packet_parser.parse_packet::<Raw>(i)
+                    },
+                );
+
+                pfn
+            }
+        };
+
         Ok(InterfaceReader {
             reader: PcapFileReader {
                 packet_parser,
                 reader,
+                parser_fn,
             },
         })
     }
@@ -80,7 +111,7 @@ impl PacketRead for PcapFileReader {
     fn read(&mut self) -> Result<Packet, DataLinkError> {
         match self.reader.next() {
             Some(Ok(packet)) => {
-                let (_rest, packet) = self.packet_parser.parse_packet::<Ether>(&packet.data)?;
+                let (_rest, packet) = (self.parser_fn)(&self.packet_parser, &packet.data)?;
                 // TODO: log warning of un-read data?
                 Ok(packet)
             }
