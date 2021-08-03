@@ -2,7 +2,7 @@
 
 ## Coverage
 
-Example to retreive coverage
+Example to retrieve coverage
 
 ```
 cargo +nightly fuzz run fuzz_tcp
