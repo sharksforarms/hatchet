@@ -1,7 +1,6 @@
-use deku::DekuContainerRead;
 use hatchet::{
     datalink::{pcap::Pcap, Interface, PacketWrite},
-    layer::{ether::Ether, ip::Ipv4, raw::Raw, tcp::Tcp, LayerOwned},
+    layer::{ether::Ether, ip::Ipv4, raw::Raw, tcp::Tcp, LayerExt, LayerOwned},
     packet::Packet,
 };
 
@@ -20,7 +19,7 @@ fn main() {
             Box::new(Ether::default()),
             Box::new(Ipv4::default()),
             Box::new(Tcp::default()),
-            Box::new(Raw::from_bytes((b"hello world", 0)).unwrap().1),
+            Box::new(Raw::parse(b"hello world").unwrap().1),
         ];
         let mut p = Packet::from_layers(layers);
         p.finalize().unwrap();

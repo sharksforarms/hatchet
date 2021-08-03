@@ -13,13 +13,7 @@ struct Http {
 
 impl Layer for Http {}
 impl LayerExt for Http {
-    fn finalize(&mut self, prev: &[LayerOwned], _next: &[LayerOwned]) -> Result<(), LayerError> {
-        if let Some(prev_layer) = prev.last() {
-            if let Some(tcp) = get_layer!(prev_layer, Tcp) {
-                dbg!(tcp);
-            }
-        }
-
+    fn finalize(&mut self, _prev: &[LayerOwned], _next: &[LayerOwned]) -> Result<(), LayerError> {
         Ok(())
     }
 
@@ -51,8 +45,8 @@ fn main() {
         }
     });
 
-    // Ether / IP / TCP / "hello world"
-    let test_data = hex!("ffffffffffff0000000000000800450000330001000040067cc27f0000017f00000100140050000000000000000050022000ffa2000068656c6c6f20776f726c64");
+    // Ether / IP / TCP / "GET /example HTTP/1.1"
+    let test_data = hex!("ffffffffffff0000000000000800450000330001000040067cc27f0000017f00000100140050000000000000000050022000ffa20000474554202f6578616d706c6520485454502f312e31");
     let (_rest, p) = pb.parse_packet::<Ether>(&test_data).unwrap();
     dbg!(p);
 }
