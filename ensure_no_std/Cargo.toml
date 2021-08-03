@@ -19,4 +19,4 @@ alloc = []
 
 [dependencies]
 wee_alloc = "0.4"
-hachet = { path = "../", default-features = false }
+hatchet = { path = "../", default-features = false }

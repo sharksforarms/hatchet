@@ -1,5 +1,5 @@
 
-# hachet WASM
+# hatchet WASM
 
 This crate is used to test wasm compatibility.
 

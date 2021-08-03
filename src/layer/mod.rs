@@ -5,7 +5,7 @@ A layer is a slice of a packet, the protocol definition.
 
 A layer is represented by the marker trait [Layer](self::Layer) and [LayerExt](self::LayerExt), the implementation trait.
 
-Internally, hachet uses [deku](https://github.com/sharksforarms/deku) to easily handle the
+Internally, hatchet uses [deku](https://github.com/sharksforarms/deku) to easily handle the
 symmetric serialization and deserialization of layers.
 */
 use alloc::{boxed::Box, vec::Vec};
@@ -111,8 +111,8 @@ Retrieve original type from a layer
 # Example
 
 ```rust
-# use hachet::layer::Layer;
-# use hachet::get_layer;
+# use hatchet::layer::Layer;
+# use hatchet::get_layer;
 # struct Ether {}
 # impl Ether {
 #    pub fn new() -> Self {
@@ -140,8 +140,8 @@ Test if a layer is of a certain type
 # Example
 
 ```rust
-# use hachet::layer::Layer;
-# use hachet::is_layer;
+# use hatchet::layer::Layer;
+# use hatchet::is_layer;
 # struct Ether {}
 # impl Ether {
 #    pub fn new() -> Self {

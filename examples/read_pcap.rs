@@ -1,4 +1,4 @@
-use hachet::datalink::{pcapfile::PcapFile, InterfaceReader};
+use hatchet::datalink::{pcapfile::PcapFile, InterfaceReader};
 use std::env;
 
 fn main() {

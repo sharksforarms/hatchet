@@ -125,7 +125,7 @@ impl PacketParser {
     # Example
 
     ```rust
-    # use hachet::{
+    # use hatchet::{
     #   is_layer, get_layer,
     #   packet::PacketParser,
     #   layer::{Layer, LayerExt, LayerOwned, LayerError}

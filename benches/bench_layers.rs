@@ -4,12 +4,12 @@ extern crate criterion;
 use criterion::black_box;
 use criterion::Criterion;
 
-use hachet::layer::ether::Ether;
-use hachet::layer::ip::{Ipv4, Ipv6};
-use hachet::layer::raw::Raw;
-use hachet::layer::tcp::Tcp;
-use hachet::layer::udp::Udp;
-use hachet::layer::LayerExt;
+use hatchet::layer::ether::Ether;
+use hatchet::layer::ip::{Ipv4, Ipv6};
+use hatchet::layer::raw::Raw;
+use hatchet::layer::tcp::Tcp;
+use hatchet::layer::udp::Udp;
+use hatchet::layer::LayerExt;
 
 macro_rules! gen_header_bench {
     ($crit:ident, $name:ident, $data:expr, $layer:ident) => {

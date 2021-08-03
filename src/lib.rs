@@ -1,9 +1,9 @@
 /*!
-Hachet is a network packet manipulation toolkit.
+Hatchet is a network packet manipulation toolkit.
 
 This library takes inspiration from Python's [Scapy](https://scapy.net/).
 
-Hachet enables extensible parsing and crafting of network packets.
+Hatchet enables extensible parsing and crafting of network packets.
 
 # Packet
 
@@ -16,9 +16,9 @@ A Layer represents the layout structure of a specific protocol (such as [Tcp](cr
 
 # Layer
 
-Hachet has [layer implementations](./layer/trait.LayerExt.html#implementors) for many core protocols.
+Hatchet has [layer implementations](./layer/trait.LayerExt.html#implementors) for many core protocols.
 
-For custom protocols or those implemented in hachet already, see [layer](crate::layer) for examples on adding a new layer.
+For custom protocols or those implemented in hatchet already, see [layer](crate::layer) for examples on adding a new layer.
 
 Contributions are welcome to add new protocols! See [here](https://github.com/sharksforarms/hatchet) for more information.
 
@@ -27,7 +27,7 @@ Contributions are welcome to add new protocols! See [here](https://github.com/sh
 The packet parser defines the heuristics on which layer to parse next, given the current layer and
 the remaining bytes.
 
-Hachet provides default layer bindings for layers it implements. These can be found [here](crate::packet::bindings).
+Hatchet provides default layer bindings for layers it implements. These can be found [here](crate::packet::bindings).
 
 # Interface
 
