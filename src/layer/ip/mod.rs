@@ -16,7 +16,7 @@ use core::convert::TryInto;
 pub fn checksum(input: &[u8]) -> u16 {
     let mut sum = 0x00;
     let mut chunks_iter = input.chunks_exact(2);
-    while let Some(chunk) = chunks_iter.next() {
+    for chunk in &mut chunks_iter {
         sum += u32::from(u16::from_be_bytes(
             chunk.try_into().expect("chunks of 2 bytes"),
         ));
