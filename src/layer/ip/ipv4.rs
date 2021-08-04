@@ -214,8 +214,6 @@ impl Default for Ipv4 {
 impl Layer for Ipv4 {}
 impl LayerExt for Ipv4 {
     fn finalize(&mut self, _prev: &[LayerOwned], next: &[LayerOwned]) -> Result<(), LayerError> {
-        self.update_checksum()?;
-
         self.length = u16::try_from(
             self.length()?
                 .checked_add(crate::layer::utils::length_of_layers(next)?)
@@ -226,6 +224,8 @@ impl LayerExt for Ipv4 {
                 })?,
         )
         .map_err(|_e| LayerError::Finalize("Could not convert layer length to u16".to_string()))?;
+
+        self.update_checksum()?;
 
         Ok(())
     }
@@ -386,7 +386,7 @@ mod tests {
 
     #[test]
     fn test_ipv4_finalize_checksum() {
-        let expected_checksum = 0x9010;
+        let expected_checksum = 0x9203;
 
         let mut ipv4 =
             Ipv4::try_from(hex!("450002070f4540008006 AABB 91fea0ed41d0e4df").as_ref()).unwrap();
@@ -424,7 +424,7 @@ mod tests {
 
         // Only these fields should change during a finalize
         let expected_ipv4 = Ipv4 {
-            checksum: 0x01F7,
+            checksum: 0x017F,
             length: 120,
             ..Default::default()
         };
