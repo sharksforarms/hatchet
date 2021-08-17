@@ -11,6 +11,7 @@ Documentation only module, listing the default layer bindings for [PacketParser]
 | [Ether] | type == Ipv6 | [Ipv4]
 | [Ipv4] | protocol == Tcp | [Tcp]
 | [Ipv4] | protocol == Udp | [Udp]
+| [Ipv4] | protocol == Icmp | [Icmp4]
 | [Ipv6] | protocol == Tcp | [Tcp]
 | [Ipv6] | protocol == Udp | [Udp]
 
@@ -19,10 +20,12 @@ Documentation only module, listing the default layer bindings for [PacketParser]
 [Ipv6]: crate::layer::ip::Ipv6
 [Udp]: crate::layer::udp::Udp
 [Tcp]: crate::layer::tcp::Tcp
+[Icmp]: crate::layer::icmp::Icmp4
 */
 use crate::{
     layer::{
         ether::{Ether, EtherType},
+        icmp::Icmp4,
         ip::{IpProtocol, Ipv4, Ipv6},
         raw::Raw,
         tcp::Tcp,
@@ -46,6 +49,7 @@ pub(crate) fn create_packetparser() -> PacketParser {
     pb.bind_layer(|ipv4: &Ipv4, _rest| match ipv4.protocol {
         IpProtocol::TCP => Some(Tcp::parse_layer),
         IpProtocol::UDP => Some(Udp::parse_layer),
+        IpProtocol::ICMP => Some(Icmp4::parse_layer),
         _ => Some(Raw::parse_layer),
     });
 

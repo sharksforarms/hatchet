@@ -16,6 +16,7 @@ pub mod utils;
 pub use error::LayerError;
 
 pub mod ether;
+pub mod icmp;
 pub mod ip;
 pub mod raw;
 pub mod tcp;
