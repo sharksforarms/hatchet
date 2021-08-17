@@ -8,9 +8,10 @@ use pnet::datalink::{self, Channel, DataLinkReceiver, DataLinkSender, NetworkInt
 use super::{DataLinkError, PacketInterface, PacketRead, PacketWrite};
 use crate::{
     datalink::{
-        Interface, InterfaceReader, InterfaceWriter, PacketInterfaceRead, PacketInterfaceWrite,
+        Interface, InterfaceMetadata, InterfaceReader, InterfaceWriter, PacketInterfaceRead,
+        PacketInterfaceWrite,
     },
-    layer::ether::Ether,
+    layer::ether::{Ether, MacAddress},
     packet::{Packet, PacketParser},
 };
 
@@ -67,6 +68,9 @@ impl PacketInterface for Pcap {
                 reader: rx,
             },
             writer: PcapWriter { writer: tx },
+            metadata: InterfaceMetadata {
+                mac_address: interface.mac.map(|v| MacAddress(v.octets())),
+            },
         })
     }
 }

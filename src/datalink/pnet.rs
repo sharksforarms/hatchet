@@ -5,8 +5,8 @@ use pnet::datalink::{self, Channel, DataLinkReceiver, DataLinkSender, NetworkInt
 
 use super::{DataLinkError, PacketInterface, PacketRead, PacketWrite};
 use crate::{
-    datalink::Interface,
-    layer::ether::Ether,
+    datalink::{Interface, InterfaceMetadata},
+    layer::ether::{Ether, MacAddress},
     packet::{Packet, PacketParser},
 };
 use alloc::boxed::Box;
@@ -61,6 +61,9 @@ impl PacketInterface for Pnet {
                 reader: rx,
             },
             writer: PnetWriter { writer: tx },
+            metadata: InterfaceMetadata {
+                mac_address: interface.mac.map(|v| MacAddress(v.octets())),
+            },
         })
     }
 }

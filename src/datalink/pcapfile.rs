@@ -7,8 +7,8 @@ libpcap interface exposed via libpnet
 */
 use crate::{
     datalink::{
-        error::DataLinkError, InterfaceReader, InterfaceWriter, PacketInterfaceRead,
-        PacketInterfaceWrite, PacketRead, PacketWrite,
+        error::DataLinkError, InterfaceMetadata, InterfaceReader, InterfaceWriter,
+        PacketInterfaceRead, PacketInterfaceWrite, PacketRead, PacketWrite,
     },
     layer::{ether::Ether, raw::Raw},
     packet::{Packet, PacketError, PacketParser},
@@ -87,6 +87,7 @@ impl PacketInterfaceRead for PcapFile {
                 reader,
                 parser_fn,
             },
+            metadata: InterfaceMetadata { mac_address: None },
         })
     }
 }
@@ -103,6 +104,7 @@ impl PacketInterfaceWrite for PcapFile {
 
         Ok(InterfaceWriter {
             writer: PcapFileWriter { writer },
+            metadata: InterfaceMetadata { mac_address: None },
         })
     }
 }

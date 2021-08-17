@@ -41,12 +41,19 @@ pub mod pnet;
 pub mod error;
 
 use crate::datalink::error::DataLinkError;
+use crate::layer::ether::MacAddress;
 use crate::packet::{Packet, PacketParser};
 
 /// A generic Packet interface used to Read and Write packets
 pub struct Interface<R: PacketRead, W: PacketWrite> {
     reader: R,
     writer: W,
+    metadata: InterfaceMetadata,
+}
+
+#[derive(Default, Clone)]
+struct InterfaceMetadata {
+    mac_address: Option<MacAddress>,
 }
 
 impl<R: PacketRead, W: PacketWrite> Interface<R, W> {
@@ -76,9 +83,11 @@ impl<R: PacketRead, W: PacketWrite> Interface<R, W> {
         (
             InterfaceReaderRef {
                 reader: &mut self.reader,
+                metadata: &self.metadata,
             },
             InterfaceWriterRef {
                 writer: &mut self.writer,
+                metadata: &self.metadata,
             },
         )
     }
@@ -88,11 +97,18 @@ impl<R: PacketRead, W: PacketWrite> Interface<R, W> {
         (
             InterfaceReader {
                 reader: self.reader,
+                metadata: self.metadata.clone(),
             },
             InterfaceWriter {
                 writer: self.writer,
+                metadata: self.metadata,
             },
         )
+    }
+
+    /// Get the mac address of the interface
+    pub fn mac_address(&self) -> Option<&MacAddress> {
+        self.metadata.mac_address.as_ref()
     }
 }
 
@@ -202,6 +218,17 @@ where
     T: PacketRead,
 {
     reader: &'a mut T,
+    metadata: &'a InterfaceMetadata,
+}
+
+impl<'a, T> InterfaceReaderRef<'a, T>
+where
+    T: PacketRead,
+{
+    /// Get the mac address of the interface
+    pub fn mac_address(&self) -> Option<&MacAddress> {
+        self.metadata.mac_address.as_ref()
+    }
 }
 
 /// Reference to write-only interface
@@ -210,6 +237,17 @@ where
     T: PacketWrite,
 {
     writer: &'a mut T,
+    metadata: &'a InterfaceMetadata,
+}
+
+impl<'a, T> InterfaceWriterRef<'a, T>
+where
+    T: PacketWrite,
+{
+    /// Get the mac address of the interface
+    pub fn mac_address(&self) -> Option<&MacAddress> {
+        self.metadata.mac_address.as_ref()
+    }
 }
 
 /// Read-only interface
@@ -218,6 +256,7 @@ where
     R: PacketRead,
 {
     reader: R,
+    metadata: InterfaceMetadata,
 }
 
 impl<R> InterfaceReader<R>
@@ -244,6 +283,11 @@ where
     {
         T::init_with_parser(name, packet_parser)
     }
+
+    /// Get the mac address of the interface
+    pub fn mac_address(&self) -> Option<&MacAddress> {
+        self.metadata.mac_address.as_ref()
+    }
 }
 
 /// Write-only interface
@@ -252,6 +296,7 @@ where
     W: PacketWrite,
 {
     writer: W,
+    metadata: InterfaceMetadata,
 }
 
 impl<W> InterfaceWriter<W>
@@ -266,6 +311,11 @@ where
         Self: Sized,
     {
         T::init(name)
+    }
+
+    /// Get the mac address of the interface
+    pub fn mac_address(&self) -> Option<&MacAddress> {
+        self.metadata.mac_address.as_ref()
     }
 }
 
@@ -374,6 +424,7 @@ mod tests {
             Ok(Interface {
                 reader: DummyReader { packet_parser },
                 writer: DummyWriter { write_count: 0 },
+                metadata: InterfaceMetadata { mac_address: None },
             })
         }
     }
