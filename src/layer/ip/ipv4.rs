@@ -193,8 +193,8 @@ impl Ipv4 {
 impl Default for Ipv4 {
     fn default() -> Self {
         Ipv4 {
-            version: 0,
-            ihl: 0,
+            version: 4,
+            ihl: 5,
             ecn: 0,
             dscp: 0,
             length: 0,
@@ -224,6 +224,8 @@ impl LayerExt for Ipv4 {
                 })?,
         )
         .map_err(|_e| LayerError::Finalize("Could not convert layer length to u16".to_string()))?;
+
+        // TODO: Update IHL
 
         self.update_checksum()?;
 
