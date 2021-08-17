@@ -1,9 +1,5 @@
 use alloc::{format, vec::Vec};
 use deku::prelude::*;
-//use nom::bytes::{complete::tag, complete::take_while_m_n};
-//use nom::combinator::{map_res, verify};
-//use nom::multi::separated_nonempty_list;
-//use nom::IResult;
 
 // Size in bytes of a MaxAddress
 const MACADDR_SIZE: usize = 6;
