@@ -354,8 +354,8 @@ mod tests {
     fn test_ipv4_default() {
         assert_eq!(
             Ipv4 {
-                version: 0,
-                ihl: 0,
+                version: 4,
+                ihl: 5,
                 ecn: 0,
                 dscp: 0,
                 length: 0,
@@ -426,7 +426,7 @@ mod tests {
 
         // Only these fields should change during a finalize
         let expected_ipv4 = Ipv4 {
-            checksum: 0x017F,
+            checksum: 0xBC7E,
             length: 120,
             ..Default::default()
         };
