@@ -27,7 +27,7 @@ pcap-file = { version = "1.1.1", optional = true }
 chrono = { version = "0.4", optional = true }
 
 [dev-dependencies]
-rstest = "0.11.0"
+rstest = "0.14.0"
 hexlit = "0.5.0"
 criterion = "0.3.4"
 
